@@ -1,1 +1,3 @@
 # NvTK
+networkx
+torch
