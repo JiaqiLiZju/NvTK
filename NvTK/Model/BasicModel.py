@@ -10,6 +10,7 @@ from torch import nn
 
 from ..Modules import BasicModule
 
+# TODO maybe not suitable for probability models
 class BasicModel(BasicModule):
     '''
     Basis Model in NvTK

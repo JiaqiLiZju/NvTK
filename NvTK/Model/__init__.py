@@ -1,4 +1,4 @@
 from .BasicModel import *
-from .CNN import *
+from .ConvModel import *
 from .Publications import *
 from .ResNet import *

@@ -6,6 +6,11 @@ import torch.nn as nn
 
 from ..Modules import BasicModule
 
+# TODO update Nvwa model
+# class Nvwa(BasicModule):
+#     def __init__(self, sequence_length, n_genomic_features):
+#         super().__init__()
+
 class NINCNN(BasicModule):
     '''
         Code:   https://arxiv.org/pdf/1312.4400.pdf
