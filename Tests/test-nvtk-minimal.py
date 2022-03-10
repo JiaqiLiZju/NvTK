@@ -11,8 +11,10 @@ from torch.utils.data import DataLoader
 from NvTK import Trainer
 from NvTK.Model.ConvModel import CNN
 from NvTK.Evaluator import calculate_roc, calculate_pr
+from NvTK.Explainer import get_activate_W, meme_generate, save_activate_seqlets
 
 # logging
+os.makedirs("./Log", exist_ok=True)
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
                     datefmt='%a, %d %b %Y %H:%M:%S',
@@ -62,6 +64,8 @@ trainer = Trainer(model, criterion, optimizer, device, tasktype='binary_classifi
 
 # train
 trainer.train_until_converge(train_loader, validate_loader, test_loader, EPOCH=500)
+# reload best model
+model = trainer.load_best_model()
 # predict test-set
 _, _, test_predictions, test_targets = trainer.predict(test_loader)
 # metric test-set
@@ -69,6 +73,14 @@ fpr, tpr, roc_auc = calculate_roc(test_targets, test_predictions)
 auroc = [roc_auc[k] for k in roc_auc.keys() if k not in ["macro", "micro"]] # dict keys ordered by default in py3.7+
 
 p, r, average_precision = calculate_pr(test_targets, test_predictions)
-aupr = [average_precision[k] for k in correlation.keys() if k not in ["macro", "micro"]] # dict keys ordered by default in py3.7+
+aupr = [average_precision[k] for k in average_precision.keys() if k not in ["macro", "micro"]] # dict keys ordered by default in py3.7+
 
 pd.DataFrame({"auroc":auroc, "aupr":aupr}, index=task_name).T.to_csv("Metric.csv")
+
+# explain based on feature-map
+W = get_activate_W(model, model.Embedding.conv, test_loader, motif_width=3)
+meme_generate(W, output_file='meme.txt', prefix='Filter_')
+
+save_activate_seqlets(model, model.Embedding.conv, test_loader, threshold=0.999,
+                        out_fname='seqlets.fasta', motif_width=3)
+os.system('homer seqlets.fasta')
