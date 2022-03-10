@@ -94,6 +94,7 @@ class SpatialGate(nn.Module):
 
 
 class CBAM(nn.Module):
+    '''CBAM'''
     def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], no_spatial=False):
         super(CBAM, self).__init__()
         self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types)

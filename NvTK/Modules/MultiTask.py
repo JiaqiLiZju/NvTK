@@ -174,6 +174,11 @@ class MTLModel(nn.Module):
         return self._bfs_forward('root')
 
 
+class ConcatenateTask(nn.Module):
+    def forward(self, x):
+        return torch.cat(x, dim=1)
+
+
 class MultiTaskWrapper(nn.Module):
     def __init__(self, sub_models, concat_dim=1):
         """

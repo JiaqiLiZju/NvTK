@@ -64,6 +64,9 @@ class EXP(nn.Module):
 
 
 class BasicConv1d(BasicModule):
+    '''
+    Basic Convolutional Module
+    '''
     def __init__(self, in_planes, out_planes, kernel_size=3, 
                     conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1, 'bias':False}, 
                     bn=True, activation=nn.ReLU, activation_args={}, 
@@ -93,6 +96,9 @@ class BasicConv1d(BasicModule):
 
 
 class BasicRNNModule(BasicModule):
+    '''
+    Basic RNN(LSTM) Module in batch-first style
+    '''
     def __init__(self, LSTM_input_size=512, LSTM_hidden_size=512, LSTM_hidden_layes=2):
         super().__init__()
         self.rnn_hidden_state = None
@@ -110,6 +116,9 @@ class BasicRNNModule(BasicModule):
 
 
 class BasicLinearModule(BasicModule):
+    '''
+    Basic Linear Module
+    '''
     def __init__(self, input_size, output_size, bias=False, 
                     bn=True, 
                     activation=nn.ReLU, activation_args={}, 
@@ -133,27 +142,47 @@ class BasicLinearModule(BasicModule):
         return x
 
 
-class BaiscPredictor(nn.Module):
-    def __init__(self, tasktype='binary_classification'):
+class BasicPredictor(nn.Module):
+    '''
+    BasicPredictor supprt tasks of 'none', 'binary_classification', 'classification', 'regression';
+    'none' : nullify the BaiscPredictor with identity
+    '''
+    def __init__(self, input_size, output_size, tasktype='binary_classification'):
         super().__init__()
         self.supported_tasks = ['none', 'binary_classification', 'classification', 'regression']
+
+        self.input_size = input_size
         self.tasktype = tasktype
-        self.switch_task(tasktype)
+        
+        self.Map = nn.Linear(input_size, output_size, bias=True)
+        self.switch_task(tasktype) # init self.Map
 
     def forward(self, x):
-        return self.Predictor(x)
+        return self.Pred(self.Map(x))
 
     def switch_task(self, tasktype):
-        assert tasktype in self.supported_tasks, 'tasktype: %s not supported, check the document' % tasktype
-        if tasktype == 'regression' or tasktype == 'none':
-            self.Predictor = nn.Sequential()
+        msg = 'tasktype: %s not supported, check the document' % tasktype
+        assert tasktype in self.supported_tasks, msg
+
+        if tasktype == 'none':
+            self.Map = nn.Sequential()
+            self.Pred = nn.Sequential()
         elif tasktype == 'classification':
-            self.Predictor = nn.Softmax(dim=1)
+            self.Pred = nn.Softmax(dim=1)
         elif tasktype == 'binary_classification':
-            self.Predictor = nn.Sigmoid()
-        else:
-            self.Predictor = nn.Sequential()
+            self.Pred = nn.Sigmoid()
+        elif tasktype == 'regression':
+            self.Pred = nn.Sequential()
+
         self.tasktype = tasktype
+    
+    # TODO
+    # def finetune(self, output_size, tasktype='binary_classification'):
+    #     self.Map = nn.Linear(input_size, output_size, bias=True)
+    #     self.Pred = nn.Sequential()
+
+    #     self.tasktype = tasktype
+    #     self.switch_task(tasktype)
 
     def current_task(self):
         return self.tasktype
