@@ -1,5 +1,6 @@
 {
     "name": "exp1",
+    "tasktype": "regression",
     "outdir": "./",
     "device": "0",
 
@@ -39,7 +40,6 @@
     },
     
     "modes":{
-        "hpo":{},
         "train":{},
         "evaluate":{},
         "explain":{}
