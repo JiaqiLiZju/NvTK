@@ -1,3 +1,181 @@
+import torch
+from .Config import *
+from .Evaluator import calculate_roc, calculate_pr
+from .Explainer import get_activate_W, meme_generate, save_activate_seqlets
+
+class NvTKCLI(object):
+    def __init__(self, config):
+        super().__init__()
+
+        if isinstance(config, 'str'):
+            self.config = load_config_from_json(config)
+        else:
+            self.config = config
+        self.modes = parse_modes_from_config(self.config)
+        self.device = torch.device("cuda") # TODO
+
+        self.train_loader, self.validate_loader, self.test_loader = generate_dataloader_from_config(self.config)
+
+        self.model = get_model_from_config(self.config)
+        self.optimizer = get_optimizer_from_config(self.config, self.model)
+        self.criterion = get_criterion_from_config(self.config)
+
+        trainer_args = parse_trainer_args(self.config)
+        self.trainer = Trainer(self.model, 
+                            self.criterion, 
+                            self.optimizer, 
+                            self.device, **trainer_args)
+
+    def execute(self):
+        '''execute nvtk'''
+        for mode in self.modes:
+            assert mode in ["hpo", "train", "evaluate", "explain"]
+        for mode in self.modes:
+            if mode == "hpo":
+                self.execute_nvtk_hpo()
+            if mode == "train":
+                self.execute_nvtk_train()
+            elif mode == "evaluate":
+                self.execute_nvtk_evaluate()
+            elif mode == "explain":
+                self.execute_nvtk_explain()
+
+    def execute_nvtk_hpo(self):
+        pass
+
+    def execute_nvtk_train(self):
+        # train
+        self.trainer.train_until_converge(self.train_loader, 
+                                    self.validate_loader, 
+                                    self.test_loader, EPOCH=500)
+
+        # reload best model
+        self.model = self.trainer.load_best_model()
+
+    def execute_nvtk_evaluate(self):
+        # reload best model
+        self.model = self.trainer.load_best_model()
+
+        # predict test-set
+        _, _, test_predictions, test_targets = self.trainer.predict(self.test_loader)
+        # metric test-set
+        fpr, tpr, roc_auc = calculate_roc(test_targets, test_predictions)
+        auroc = [roc_auc[k] for k in roc_auc.keys() if k not in ["macro", "micro"]] # dict keys ordered by default in py3.7+
+
+        p, r, average_precision = calculate_pr(test_targets, test_predictions)
+        aupr = [average_precision[k] for k in average_precision.keys() if k not in ["macro", "micro"]] # dict keys ordered by default in py3.7+
+
+        pd.DataFrame({"auroc":auroc, "aupr":aupr}, index=task_name).T.to_csv("Metric.csv")
+
+    def execute_nvtk_explain(self):
+        # explain based on feature-map
+        W = get_activate_W(self.model, model.Embedding.conv, self.test_loader, motif_width=3)
+        meme_generate(W, output_file='meme.txt', prefix='Filter_')
+
+        save_activate_seqlets(model, model.Embedding.conv, self.test_loader, threshold=0.999,
+                                out_fname='seqlets.fasta', motif_width=3)
+
+
+def execute_nvtk(config):
+    '''execute nvtk'''
+    if isinstance(config, 'str'):
+        config = load_config_from_json(config)
+    
+    modes = parse_modes_from_config(config)
+    for mode in modes:
+        assert mode in ["hpo", "train", "evaluate", "explain"]
+    for mode in modes:
+        if mode == "hpo":
+            execute_nvtk_hpo(config)
+        if mode == "train":
+            execute_nvtk_train(config)
+        elif mode == "evaluate":
+            execute_nvtk_evaluate(config)
+        elif mode == "explain":
+            execute_nvtk_explain(config)
+
+def execute_nvtk_hpo(config):
+    pass
+
+def execute_nvtk_train(config):
+    trainer_args = parse_trainer_args(config)
+    trainer = Trainer(model, criterion, optimizer, device, **trainer_args)
+    # train
+    trainer.train_until_converge(train_loader, validate_loader, test_loader, EPOCH=500)
+    # reload best model
+    model = trainer.load_best_model()
+    return model
+
+def execute_nvtk_evaluate(config):
+    pass
+
+
+def execute_nvtk_explain(config):
+    pass
+
+
+def initialize_logger(output_path, verbosity=1):
+    """
+    Initializes the logger for nvtk.
+    This function can only be called successfully once.
+    If the logger has already been initialized with handlers,
+    the function exits. Otherwise, it proceeds to set the
+    logger configurations.
+
+    Parameters
+    ----------
+    output_path : str
+        The path to the output file where logs will be written.
+
+    verbosity : int, {2, 1, 0}
+        Default is 1. The level of logging verbosity to use.
+
+            * 0 - Only warnings will be logged.
+            * 1 - Information and warnings will be logged.
+            * 2 - Debug messages, information, and warnings will all be\
+                  logged.
+
+    """
+    logger = logging.getLogger("nvtk")
+    # check if logger has already been initialized
+    if len(logger.handlers):
+        return
+
+    if verbosity == 0:
+        logger.setLevel(logging.WARN)
+    elif verbosity == 1:
+        logger.setLevel(logging.INFO)
+    elif verbosity == 2:
+        logger.setLevel(logging.DEBUG)
+
+    file_formatter = logging.Formatter(
+        "%(asctime)s - %(levelname)s - %(message)s")
+
+    file_handle = logging.FileHandler(output_path)
+    file_handle.setFormatter(file_formatter)
+    logger.addHandler(file_handle)
+
+    stdout_formatter = logging.Formatter(
+        "%(asctime)s - %(message)s")
+
+    stdout_handle = logging.StreamHandler(sys.stdout)
+    stdout_handle.setFormatter(stdout_formatter)
+    stdout_handle.setLevel(logging.INFO)
+    logger.addHandler(stdout_handle)
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("data")
+    parser.add_argument("--config", dest="config", default=None, type=str)
+    args = parser.parse_args()
+
+    if args.config is not None:
+        nvtk = NvTKCLI(args.config)
+        nvtk.execute()
+
+
 import os, time, shutil, logging, argparse
 import pickle, h5py
 import numpy as np

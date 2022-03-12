@@ -3,9 +3,44 @@ import os, logging, itertools
 import numpy as np
 import pandas as pd
 
-from sklearn.metrics import *
+from sklearn.metrics import auc, roc_curve, precision_recall_curve, average_precision_score
 from scipy.stats import pearsonr, spearmanr, kendalltau
 
+
+# class Metric(object):
+#     def __init__(self, task_name, tasktype=None, metrics={"auroc":calculate_roc}):
+#         super().__init__()
+#         self.task_name = task_name
+#         self.results = {}
+#         self.metrics = {}
+#         if tasktype in ["regression"]:
+#             self.metrics["pcc"] = calculate_correlation
+#             self.metrics["scc"] = [calculate_correlation, {"method":"spearman"}]
+#         elif tasktype in ["classification", "binary_classification"]:
+#             self.metrics["auroc"] = calculate_roc
+#             self.metrics["scc"] = calculate_pr
+#         for k, v in metrics.items():
+#             self.metrics[k] = v
+            
+#     def calculate(self, target, prediction):
+#         results = {}
+#         for k, v in self.metrics.items():
+#             if isinstance(v, list):
+#                 metric, args = v
+#                 results[k] = metric(target, prediction, **args)
+#             else:
+#                 metric = v
+#                 results[k] = metric(target, prediction)
+        
+#         self.results = results
+#         return results
+
+#     def write(self, fname):
+#         pd.DataFrame(self.results, index=self.task_name).T.to_csv(fname)
+
+#     def draw(self):
+#         pass
+        
 
 def onehot_encode(label):
     from sklearn.preprocessing import label_binarize

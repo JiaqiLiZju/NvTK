@@ -8,10 +8,10 @@ class Trainer(object):
     '''
     Model Trainer
     '''
-    def __init__(self, model, criterion, optimizer, device, pred_prob=True,
+    def __init__(self, model, criterion, optimizer, device, tasktype="regression",
                     metric_sample=100, patience=10,
                     resume=False, resume_dirs=None,
-                    use_tensorbord=False, tensorbord_args=None):
+                    use_tensorbord=False, tensorbord_args={}):
         super().__init__()
         self.model = model.to(device)
         self.device = device
@@ -20,7 +20,7 @@ class Trainer(object):
         self.patience = patience
 
         # task related
-        self.pred_prob = pred_prob
+        self.pred_prob = tasktype != "regression"
         # sample tasks for calculate metric
         self.metric_sample = metric_sample
 
@@ -57,6 +57,10 @@ class Trainer(object):
             self.tensorbord = False
 
     def train_until_converge(self, train_loader, validate_loader, test_loader, EPOCH, resume=False, verbose_step=5):
+        # graph
+        if self.tensorbord:
+            self.add_graph(next(iter(train_loader))[0][:2].shape)
+
         for epoch in range(EPOCH):
             # train
             train_batch_loss, train_loss = self.train_per_epoch(train_loader, epoch, verbose_step=20)
@@ -94,11 +98,17 @@ class Trainer(object):
             self.show_trainer_log()
 
             if self.tensorbord:
-                self.writer.add_scalar('Loss/train', np.random.random(), epoch)
-                self.writer.add_scalar('Loss/test', np.random.random(), epoch)
-                self.writer.add_scalar('Accuracy/train', np.random.random(), epoch)
-                self.writer.add_scalar('Accuracy/test', np.random.random(), epoch)
-            
+                self.writer.add_scalar('Loss/train', train_loss, epoch)
+                self.writer.add_scalar('Loss/test', test_loss, epoch)
+                self.writer.add_scalar('Accuracy/train', train_metric, epoch)
+                self.writer.add_scalar('Accuracy/test', test_metric, epoch)
+
+                try:
+                    self.writer.add_histogram('Embedding.conv.bias', self.model.Embedding.conv.bias, epoch)
+                    self.writer.add_histogram('Embedding.conv.weight', self.model.Embedding.conv.weight, epoch)
+                except:
+                    pass
+
             # update best
             if val_loss < self.logs["best_val_loss"] or val_metric > self.logs["best_val_r"]:
                 self.logs["best_val_loss"] = val_loss
@@ -131,6 +141,8 @@ class Trainer(object):
         logging.info("Best Test Metric\t%.8f\t@epoch%d" % (np.max(self.logs['test_metric_list']), np.argmax(self.logs['test_metric_list'])))
         logging.info("Best Test Loss\t%.8f\t@epoch%d" % (np.min(self.logs['test_loss_list']), np.argmin(self.logs['test_loss_list'])))
 
+        self.load_best_model()
+
     def train_per_epoch(self, train_loader, epoch, verbose_step=5):
         # train one epoch
         batch_losses = []
@@ -148,6 +160,7 @@ class Trainer(object):
         return batch_losses, average_loss
     
     def train_batch(self, data, target):
+        self.model.train()
         data, target = data.to(self.device), target.to(self.device)
         output = self.model(data)
         loss = self.criterion(output, target)
@@ -172,9 +185,9 @@ class Trainer(object):
         all_targets = np.vstack(all_targets)
         return batch_losses, average_loss, all_predictions, all_targets
 
-    def evaluate(self, target_prob, predict_prob):
+    def evaluate(self, predict_prob, target_prob, sample_tasks=True):
         output_size = target_prob.shape[-1]
-        if self.metric_sample < output_size:
+        if self.metric_sample < output_size and sample_tasks:
             metric_sample_idx = random.sample(range(output_size), self.metric_sample)
             logging.info("sampled %d tasks for metric" % self.metric_sample)
         else:
@@ -191,6 +204,13 @@ class Trainer(object):
             metric = np.mean(correlation_l)
 
         return metric
+
+    def add_graph(self, input_shape=(2, 4, 1000)):
+        self.writer.add_graph(self.model, torch.rand(input_shape).to(self.device))
+
+    def load_best_model(self, fpath="./Log/best_model.pth"):
+        self.model.load(fpath)
+        return self.model
 
     def get_current_model(self):
         return self.model
