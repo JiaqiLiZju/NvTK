@@ -8,8 +8,8 @@ class BasicConvEmbed(nn.Module):
     Embed Sequence using Convolution Layer.
     '''
     def __init__(self, out_planes, kernel_size=3, in_planes=4, 
-                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1, 'bias':False}, 
-                    bn=True, activation=nn.ReLU, activation_args={}, 
+                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1}, 
+                    bn=False, activation=nn.ReLU, activation_args={}, 
                     pool=nn.AvgPool1d, pool_args={'kernel_size': 3}):
         super().__init__()
         self.out_channels = out_planes
@@ -40,14 +40,14 @@ class RevCompConvEmbed(nn.Module):
     Embed Sequence and Reverse Complement Sequence using Convolution Layer.
     '''
     def __init__(self, out_planes, kernel_size=3, in_planes=4, 
-                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1, 'bias':False}, 
-                    bn=True, activation=nn.ReLU, activation_args={}, 
+                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1}, 
+                    bn=False, activation=nn.ReLU, activation_args={}, 
                     pool=nn.AvgPool1d, pool_args={'kernel_size': 3}):
         super().__init__()
-        self.RevCompConvEmbed = BasicConvEmbed(out_planes, kernel_size=3, in_planes=4, 
-                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1, 'bias':False}, 
-                    bn=True, activation=nn.ReLU, activation_args={}, 
-                    pool=nn.AvgPool1d, pool_args={'kernel_size': 3})
+        self.RevCompConvEmbed = BasicConvEmbed(out_planes, kernel_size=kernel_size, in_planes=in_planes, 
+                    conv_args=conv_args, 
+                    bn=bn, activation=activation, activation_args=activation_args, 
+                    pool=pool, pool_args=pool_args)
         self.RevComp = RevComp()
 
     def forward(self, x):
@@ -57,9 +57,14 @@ class RevCompConvEmbed(nn.Module):
 
 
 class CharConvModule(nn.Module):
+    '''
+    Embed Sequence using wide and shallow CharConvolution Layer.
+    '''
     def __init__(self, numFiltersConv1=40, filterLenConv1=5,
                         numFiltersConv2=44, filterLenConv2=15,
-                        numFiltersConv3=44, filterLenConv3=25):
+                        numFiltersConv3=44, filterLenConv3=25,
+                        bn=False, activation=nn.ReLU, activation_args={}, 
+                        pool=nn.AvgPool1d, pool_args={'kernel_size': 3}):
         
         super().__init__()
         self.conv1 = nn.Conv1d(in_channels=4, out_channels=numFiltersConv1, 
@@ -68,6 +73,11 @@ class CharConvModule(nn.Module):
                                 kernel_size=filterLenConv2, padding=(filterLenConv2 - 1) // 2)
         self.conv3 = nn.Conv1d(in_channels=4, out_channels=numFiltersConv3, 
                                 kernel_size=filterLenConv3, padding=(filterLenConv3 - 1) // 2)
+
+        out_planes = numFiltersConv1 + numFiltersConv2 + numFiltersConv3
+        self.bn = nn.BatchNorm1d(out_planes, eps=1e-5, momentum=0.01, affine=True) if bn else None
+        self.activation = activation(**activation_args) if activation is not None else None
+        self.pool = pool(**pool_args) if pool else None
 
     def forward(self, x):
         logging.debug(x.shape)
@@ -82,6 +92,14 @@ class CharConvModule(nn.Module):
         logging.debug(out3.shape)
         
         out = torch.cat([out1, out2, out3], dim=1)
+        logging.debug(out.shape)
+
+        if self.bn is not None:
+            out = self.bn(out)
+        if self.activation is not None:
+            out = self.activation(out)
+        if self.pool is not None:
+            out = self.pool(out)
         logging.debug(out.shape)
 
         return out
