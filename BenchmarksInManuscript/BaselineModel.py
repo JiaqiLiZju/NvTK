@@ -1,8 +1,9 @@
 import torch
 from torch import nn
 
-from NvTK import BasicModel
-from NvTK.Modules import BasicConv1d, BasicConvEmbed, Flatten, BasicLinearModule, BasicPredictor, CBAM
+from NvTK.Model import BasicModel
+from NvTK.Modules import BasicConv1d, BasicConvEmbed, Flatten, BasicLinearModule, BasicPredictor
+from NvTK.Modules import CBAM, CharConvModule
 
 from collections import OrderedDict
 
@@ -36,13 +37,38 @@ class BaselineCNN(BasicModel):
                 encoder_layers['Conv_'+n] = BasicConv1d(256, 256)
                 if use_CBAM:
                     encoder_layers['CBAM_'+n] = CBAM(256)
-        encoder_layers['GAP'] = nn.AdaptiveAvgPool1d(GAP)
-        encoder_layers['Flatten'] = Flatten()
+        encoder_layers['GAP'] = nn.AdaptiveAvgPool1d(GAP) # (batch_size, 256, GAP)
+        encoder_layers['Flatten'] = Flatten() # (batch_size, 256*GAP)
         self.Encoder = nn.Sequential(encoder_layers)
 
-        self.Decoder = BasicLinearModule(256 * 8, 256)
+        self.Decoder = BasicLinearModule(256 * GAP, 256)
         self.Predictor = BasicPredictor(256, output_size, tasktype=tasktype)
 
+
+def get_charCNN(baselinemodel):
+    baselinemodel.Embedding = CharConvModule(numFiltersConv1=44, filterLenConv1=5,
+                                    numFiltersConv2=40, filterLenConv2=15,
+                                    numFiltersConv3=44, filterLenConv3=25)
+    return baselinemodel
+
+
+def get_resnet18(output_size):
+    from NvTK import resnet18
+    model = BaselineCNN(output_size)
+    model = resnet18(output_size)
+    return model
+
+
+def get_resnet50(output_size):
+    from NvTK import resnet50
+    model = resnet50(output_size)
+    return model
+
+
+def get_resnet101(output_size):
+    from NvTK import resnet101
+    model = resnet101(output_size)
+    return model
 
 
 
