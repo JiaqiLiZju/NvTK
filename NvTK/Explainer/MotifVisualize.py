@@ -16,6 +16,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from .Motif import normalize_pwm
 
+# def imresize(arr, shape):
+# 	return np.array(Image.fromarray(arr).resize((shape[1], shape[0])))
 
 def filter_heatmap(pwm, output_fname=None, save=False, fig_size=(10, 7), 
                     norm=True, cmap='hot_r', cbar_norm=True):
@@ -232,6 +234,7 @@ def seq_logo(pwm, height=30, nt_width=10, norm=0, alphabet='dna', colormap='stan
 			if nt_height[j] > 0:
 				# resized dimensions of image
 				nt_img = np.array(Image.fromarray(chars[index[j]]).resize((nt_width, nt_height[j])))
+				# nt_img = imresize(chars[index[j]], (nt_height[j], nt_width))
 				# determine location of image
 				height_range = range(remaining_height-nt_height[j], remaining_height)
 				width_range = range(i*nt_width, i*nt_width+nt_width)

@@ -51,7 +51,7 @@ def deep_explain_layer_conductance(model, model_layer, input_tensor, n_class=1):
     cond_val_l = []
     for i_class in range(n_class):
         attribution = layer_cond.attribute(input_tensor, target=i_class, internal_batch_size=32)
-        cond_vals = attribution.detach().numpy()
+        cond_vals = attribution.data.cpu().numpy()
         cond_val_l.append(cond_vals)
     return np.array(cond_val_l)
 
@@ -59,15 +59,16 @@ def deep_explain_layer_conductance(model, model_layer, input_tensor, n_class=1):
 def label_neuron_importance(model, model_layer, input_tensor, label):
     n_class = len(label)
     imp = deep_explain_layer_conductance(model, model_layer, input_tensor, n_class=n_class)
-    imp = imp.mean(-1).mean(1)
+    imp = imp.max(-1).mean(1)
     df = pd.DataFrame(imp, index=label)
     return df
 
 
 def plot_label_neuron_importance(model, model_layer, input_tensor, label):
     df = label_neuron_importance(model, model_layer, input_tensor, label)
-    plt.figure(figsize=(30,4), cmap="vlag")
-    ax = sns.heatmap(df)
+    plt.figure(figsize=(30,4))
+    ax = sns.heatmap(df, cmap="Greys")
+    plt.savefig("label_neuron_importance.pdf")
     plt.show()
     plt.close()
 
