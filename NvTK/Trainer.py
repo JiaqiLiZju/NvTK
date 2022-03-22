@@ -9,7 +9,7 @@ class Trainer(object):
     Model Trainer
     '''
     def __init__(self, model, criterion, optimizer, device, tasktype="regression",
-                    metric_sample=100, patience=10,
+                    metric_sample=100, item_sample=50000, patience=10,
                     resume=False, resume_dirs=None,
                     use_tensorbord=False, tensorbord_args={}):
         super().__init__()
@@ -23,6 +23,7 @@ class Trainer(object):
         self.pred_prob = tasktype != "regression"
         # sample tasks for calculate metric
         self.metric_sample = metric_sample
+        self.item_sample = item_sample
 
         # Trainer will maintain logs information
         self.logs = {
@@ -185,21 +186,28 @@ class Trainer(object):
         all_targets = np.vstack(all_targets)
         return batch_losses, average_loss, all_predictions, all_targets
 
-    def evaluate(self, predict_prob, target_prob, sample_tasks=True):
-        output_size = target_prob.shape[-1]
+    def evaluate(self, predict_prob, target_prob, sample_tasks=True, sample_items=True):
+        item_size, output_size = target_prob.shape
+
         if self.metric_sample < output_size and sample_tasks:
             metric_sample_idx = random.sample(range(output_size), self.metric_sample)
             logging.info("sampled %d tasks for metric" % self.metric_sample)
-        else:
-            metric_sample_idx = range(output_size)
+            target_prob = target_prob[:, metric_sample_idx]
+            predict_prob = predict_prob[:, metric_sample_idx]
+
+        if self.item_sample < item_size and sample_items:
+            item_sample_idx = random.sample(range(item_size), self.item_sample)
+            logging.info("sampled %d items for metric" % self.item_sample)
+            target_prob = target_prob[item_sample_idx, :]
+            predict_prob = predict_prob[item_sample_idx, :]
 
         if self.pred_prob:
-            fpr, tpr, roc_auc = calculate_roc(target_prob[:,metric_sample_idx], predict_prob[:,metric_sample_idx])
+            fpr, tpr, roc_auc = calculate_roc(target_prob, predict_prob)
             roc_l = [roc_auc[k] for k in roc_auc.keys() if roc_auc[k] >=0 and k not in ["macro", "micro"]]
             metric = np.mean(roc_l)
         
         else:
-            correlation, pvalue = calculate_correlation(target_prob[:,metric_sample_idx], predict_prob[:,metric_sample_idx])
+            correlation, pvalue = calculate_correlation(target_prob, predict_prob)
             correlation_l = [correlation[k] for k in correlation.keys() if k not in ["macro", "micro"]] # dict keys ordered by default in py3.7+
             metric = np.mean(correlation_l)
 

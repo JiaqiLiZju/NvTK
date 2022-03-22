@@ -1,6 +1,6 @@
 # NvTK
 
-Source code used for ```Systematic evaluation of deep learning predicting expression at single-cell level```
+Source code used for ```Systematic evaluation of deep learning for mapping sequence to single-cell data using NvTK```
 
 NvTK (NvwaToolKit), is a systemmatic and easy-using deep learning software in genomics. NvTK support modern deep learning achitectures in genomics, such as Residual Module, ResNet, Attention Module, CBAM, Transformer and so on. 
 
@@ -12,6 +12,7 @@ ps. Nvwa, the name of a mother god in ancient Chinese legend, is a deep learning
 - Python packages
 ```
 python>=3.7
+h5py-2.10.0
 sklearn
 torch
 networkx

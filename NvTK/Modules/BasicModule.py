@@ -68,7 +68,7 @@ class BasicConv1d(BasicModule):
     Basic Convolutional Module
     '''
     def __init__(self, in_planes, out_planes, kernel_size=3, 
-                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1, 'bias':False}, 
+                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1}, 
                     bn=True, activation=nn.ReLU, activation_args={}, 
                     dropout=True, dropout_args={'p':0.5},
                     pool=nn.AvgPool1d, pool_args={'kernel_size': 3}):
@@ -119,8 +119,7 @@ class BasicLinearModule(BasicModule):
     '''
     Basic Linear Module
     '''
-    def __init__(self, input_size, output_size, bias=False, 
-                    bn=True, 
+    def __init__(self, input_size, output_size, bias=True, bn=True, 
                     activation=nn.ReLU, activation_args={}, 
                     dropout=True, dropout_args={'p':0.5}):
         super().__init__()
