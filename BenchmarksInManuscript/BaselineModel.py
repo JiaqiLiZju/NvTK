@@ -19,8 +19,8 @@ class BaselineCNN(BasicModel):
     '''
     def __init__(self, output_size, 
                     emb_planes=128, kernel_size=15, in_planes=4, 
-                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1, 'bias':False}, 
-                    bn=True, activation=nn.ReLU, activation_args={}, 
+                    conv_args={'stride':1, 'padding':0, 'dilation':1, 'groups':1}, 
+                    bn=False, activation=nn.ReLU, activation_args={}, 
                     pool=nn.AvgPool1d, pool_args={'kernel_size': 15},
                     n_deep_convlayers=1, use_CBAM=False, GAP=64, tasktype='regression'):
         super().__init__()
@@ -45,11 +45,11 @@ class BaselineCNN(BasicModel):
         self.Predictor = BasicPredictor(256, output_size, tasktype=tasktype)
 
 
-def get_charCNN(baselinemodel):
-    baselinemodel.Embedding = CharConvModule(numFiltersConv1=44, filterLenConv1=5,
+def switch_to_charCNN(model):
+    model.Embedding = CharConvModule(numFiltersConv1=44, filterLenConv1=5,
                                     numFiltersConv2=40, filterLenConv2=15,
                                     numFiltersConv3=44, filterLenConv3=25)
-    return baselinemodel
+    return model
 
 
 def get_resnet18(output_size):
@@ -70,6 +70,13 @@ def get_resnet101(output_size):
     model = resnet101(output_size)
     return model
 
+
+def get_transformer(seq_len, output_size):
+    from NvTK import TransformerEncoder
+    model = BaselineCNN(output_size, GAP=2)
+    model.Embedding = nn.Sequential()
+    model.Encoder = TransformerEncoder(seq_len, d_model=512)
+    return model
 
 
 # test 
