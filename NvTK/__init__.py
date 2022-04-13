@@ -11,6 +11,10 @@ def set_random_seed(random_seed = 12):
     # set random_seed
     random.seed(random_seed)
     np.random.seed(random_seed)
+
+
+def set_torch_seed(random_seed = 12):
+    # set torch random_seed
     torch.random.seed = random_seed
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed) 
