@@ -24,6 +24,7 @@ from BaselineModel import BaselineCNN
 
 # set_all_random_seed
 NvTK.set_random_seed()
+NvTK.set_torch_seed()
 NvTK.set_torch_benchmark()
 
 # help-functions
@@ -79,7 +80,7 @@ parser.add_argument("--use_CBAM", dest="use_CBAM", default=False, type=bool)
 parser.add_argument("--use_Transformer", dest="use_transformer", action="store_true", default=False)
 parser.add_argument("--use_ResNet", dest="use_ResNet", default=None, type=int)
 parser.add_argument("--use_DeepCNN", dest="use_DeepCNN", default=1, type=int)
-parser.add_argument("--use_CharCNN", dest="use_CharCNN", action="store_true", default=False)
+# parser.add_argument("--use_CharCNN", dest="use_CharCNN", action="store_true", default=False)
 
 parser.add_argument("--tower_by", dest="tower_by", default="Celltype")
 parser.add_argument("--tower_hidden", dest="tower_hidden", default=None, type=int)
@@ -157,6 +158,15 @@ model = BaselineCNN(output_size=n_tasks,
                     pool=pooltype, pool_args={"kernel_size":args.Pool1},
                     n_deep_convlayers=args.use_DeepCNN, use_CBAM=args.use_CBAM, GAP=GAP,
                     tasktype=args.tasktype)
+
+if args.use_ResNet:
+    from BaselineModel import get_resnet
+    model = get_resnet(output_size=n_tasks, layers=args.use_ResNet, tasktype=args.tasktype)
+
+if args.use_transformer:
+    from BaselineModel import get_transformer
+    model = get_transformer(x_test[:2].shape, output_size=n_tasks, tasktype=args.tasktype)
+
 logging.info(model.__str__())
 
 optimizer = Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999), eps=1e-08, weight_decay=0,)
@@ -176,6 +186,7 @@ trainer = Trainer(model, criterion, optimizer, device,
 trainer.train_until_converge(train_loader, validate_loader, test_loader, EPOCH=args.EPOCH)
 # reload best model
 model = trainer.load_best_model()
+model.eval()
 
 os.makedirs("./Test", exist_ok=True)
 # predict test-set
@@ -204,21 +215,21 @@ else:
 
 os.makedirs("./Motif", exist_ok=True)
 # explain based on feature-map
-W = get_activate_W(model, model.Embedding.conv, test_loader, threshold=0.99, motif_width=args.filterLenConv1)
+W = get_activate_W(model, model.Embedding.conv, test_loader, threshold=0.9, motif_width=args.filterLenConv1)
 meme_generate(W, output_file='./Motif/meme.txt', prefix='Filter_')
 np.save("./Motif/W", W)
 
 W1_freq, W1_IC = calc_frequency_W(W, background=0.25)
 pd.DataFrame({"freq":W1_freq, "IC":W1_IC}).to_csv("./Motif/meme_IC.csv")
 
-save_activate_seqlets(model, model.Embedding.conv, test_loader, 
-                        threshold=0.99, motif_width=args.filterLenConv1,
-                        out_fname='./Motif/seqlets.fasta')
+# save_activate_seqlets(model, model.Embedding.conv, test_loader, 
+#                         threshold=0.9, motif_width=args.filterLenConv1,
+#                         out_fname='./Motif/seqlets.fasta')
 # os.system('homer seqlets.fasta')
 
 fig = plt.figure(figsize = (16, 40))
-for j in range(len(W)):  
-    plt.subplot(32, 4, j+1)
+for j in range(len(W)):
+    plt.subplot(128, 4, j+1)
     logo = seq_logo(W[j], height=100, nt_width=50, norm=0, alphabet='dna')
     plot_seq_logo(logo, nt_width=20, step_multiple=4)    
     plt.xticks([])

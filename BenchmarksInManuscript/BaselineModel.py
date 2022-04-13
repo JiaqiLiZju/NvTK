@@ -34,9 +34,9 @@ class BaselineCNN(BasicModel):
             encoder_layers['CBAM'] = CBAM(256)
         if n_deep_convlayers > 1:
             for n in range(1, n_deep_convlayers):
-                encoder_layers['Conv_'+n] = BasicConv1d(256, 256)
+                encoder_layers['Conv_'+str(n)] = BasicConv1d(256, 256, pool=False)
                 if use_CBAM:
-                    encoder_layers['CBAM_'+n] = CBAM(256)
+                    encoder_layers['CBAM_'+str(n)] = CBAM(256)
         encoder_layers['GAP'] = nn.AdaptiveAvgPool1d(GAP) # (batch_size, 256, GAP)
         encoder_layers['Flatten'] = Flatten() # (batch_size, 256*GAP)
         self.Encoder = nn.Sequential(encoder_layers)
@@ -52,30 +52,26 @@ def switch_to_charCNN(model):
     return model
 
 
-def get_resnet18(output_size):
-    from NvTK import resnet18
-    model = BaselineCNN(output_size)
-    model = resnet18(output_size)
+def get_resnet(output_size, layers=18, tasktype='regression'):
+    assert layers in [18, 50, 101]
+    from NvTK import resnet18, resnet50, resnet101
+    if layers == 18:
+        model = resnet18(output_size)
+    elif layers == 50:
+        model = resnet50(output_size)
+    elif layers == 101:
+        model = resnet101(output_size)
+    
+    model.fc = BasicPredictor(512, output_size, tasktype=tasktype)
     return model
 
 
-def get_resnet50(output_size):
-    from NvTK import resnet50
-    model = resnet50(output_size)
-    return model
-
-
-def get_resnet101(output_size):
-    from NvTK import resnet101
-    model = resnet101(output_size)
-    return model
-
-
-def get_transformer(seq_len, output_size):
+def get_transformer(input_size, output_size, tasktype='regression'):
     from NvTK import TransformerEncoder
-    model = BaselineCNN(output_size, GAP=2)
-    model.Embedding = nn.Sequential()
-    model.Encoder = TransformerEncoder(seq_len, d_model=512)
+    model = BaselineCNN(output_size, emb_planes=256, activation=False, pool=False, GAP=1, tasktype=tasktype)
+    data = torch.zeros(input_size)
+    _, d_model, seq_len = model.Embedding(data).shape
+    model.Encoder = TransformerEncoder(seq_len, d_model=d_model, embedding=nn.Sequential())
     return model
 
 

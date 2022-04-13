@@ -129,3 +129,13 @@ done
 # cp -r ../$i/runs/Mar*/ $i
 # done
 # tensorboard --logdir=runs --bind_all
+
+# for i in `ls . |grep scATAC_`;do
+# echo $i
+# mkdir results/$i results/$i/Test results/$i/Motif
+# mv $i/Test/test* results/$i/Test/.
+# mv $i/Motif/seqlets.fasta results/$i/Motif/.
+# mv $i/Motif/W.npy results/$i/Motif/.
+# done
+# tar zvcf Benchmark_Arch_scATAC.tar.gz scATAC_*
+
