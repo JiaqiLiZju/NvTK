@@ -9,6 +9,8 @@ import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
 
+from .BasicModule import BasicModule
+
 class BasicConv(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, 
                         dilation=1, groups=1, relu=True, bn=True, bias=False):
@@ -188,7 +190,7 @@ class Bottleneck(nn.Module):
 
         return out
 
-class ResNet(nn.Module):
+class ResNet(BasicModule):
     def __init__(self, block, layers,  network_type, num_classes, att_type=None):
         self.inplanes = 64
         super(ResNet, self).__init__()
