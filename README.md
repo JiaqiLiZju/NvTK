@@ -4,7 +4,7 @@ Source code used for ```Systematic evaluation of deep learning for mapping seque
 
 NvTK (NvwaToolKit), is a systemmatic and easy-using deep learning software in genomics. NvTK support modern deep learning achitectures in genomics, such as Residual Module, ResNet, Attention Module, CBAM, Transformer and so on. 
 
-<img src="./Figures/NvTK.png" width="450px"></img>
+<div align=center><img src="./Figures/NvTK.png" width="450px"></img></div>
 
 It's quite easy to train a deep learning model using a pre-defined model architecture in NvTK. I've re-implemented several published models in NvTK. At the same time, NvTK also support to automatically (or manually) search the best hyper-parameters of model architecture. Moreover, custumed and complicated model could be build with low-level modules in NvTK (NvTK.Trainer and Explainer always help me a lot). Importantly, NvTK is also easy to be extended with advanced deep learning modules based on pytorch. 
 
@@ -25,13 +25,13 @@ ray[tune]-v1.10.0
 ```
 pip install -U "ray[tune]"
 
-- external softwares
+- external softwares (optional)
 ```
 meme-5.4.1
 homer2
 ```
 <!-- biopython-1.79 -->
 
-## Note
+## News
 - 2022.03.01: NvTK is quite unstable under activate development.
 - 2022.03.23: updating BenchmarksInManuscript
