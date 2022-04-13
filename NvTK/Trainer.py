@@ -60,7 +60,11 @@ class Trainer(object):
     def train_until_converge(self, train_loader, validate_loader, test_loader, EPOCH, resume=False, verbose_step=5):
         # graph
         if self.tensorbord:
-            self.add_graph(next(iter(train_loader))[0][:2].shape)
+            try:
+                self.add_graph(next(iter(train_loader))[0][:2].shape)
+            except BaseException as e:
+                logging.warning("tensorbord cannot added graph")
+                logging.warning(e)
 
         for epoch in range(EPOCH):
             # train
