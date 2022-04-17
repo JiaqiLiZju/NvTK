@@ -1,2 +1,10 @@
 [core]
 excludesfile = ~/.gitignore_global
+
+.DS_Store
+
+# ignore docs/build 
+docs/build
+
+# ignore cache
+__pycache__

@@ -7,15 +7,15 @@
     year={2018}
 }
 '''
+from torch.optim import Adam
 
 from ray import tune
 
 from . import Model
 from .Trainer import Trainer
 
-def objective(hp_args):
-    module = getattr(Model, "BasicCNN")
-    model = module(hp_args)
+def objective(module, model_args):
+    model = module(model_args)
 
     optimizer = Adam(model.parameters(), lr=1e-3)
     criterion = nn.BCELoss()
