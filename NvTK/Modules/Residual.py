@@ -1,8 +1,37 @@
 '''
-    Code:   https://github.com/implus/PytorchInsight/blob/master/classification/models/imagenet/resnet_cbam.py
-    Note:   modified for onehot sequence input
-            add attention module using CBAM
+    @inproceedings{li2019selective,
+        title={Selective Kernel Networks},
+        author={Li, Xiang and Wang, Wenhai and Hu, Xiaolin and Yang, Jian},
+        journal={IEEE Conference on Computer Vision and Pattern Recognition},
+        year={2019}
+    }
+
+    @inproceedings{li2019spatial,
+        title={Spatial Group-wise Enhance: Enhancing Semantic Feature Learning in Convolutional Networks},
+        author={Li, Xiang and Hu, Xiaolin and Xia, Yan and Yang, Jian},
+        journal={arXiv preprint arXiv:1905.09646},
+        year={2019}
+    }
+
+    @inproceedings{li2019understanding,
+        title={Understanding the Disharmony between Weight Normalization Family and Weight Decay: e-shifted L2 Regularizer},
+        author={Li, Xiang and Chen, Shuo and Yang, Jian},
+        journal={arXiv preprint arXiv:},
+        year={2019}
+    }
+
+    @inproceedings{li2019generalization,
+        title={Generalization Bound Regularizer: A Unified Framework for Understanding Weight Decay},
+        author={Li, Xiang and Chen, Shuo and Gong, Chen and Xia, Yan and Yang, Jian},
+        journal={arXiv preprint arXiv:},
+        year={2019}
+}
+
 '''
+
+# Code:   https://github.com/implus/PytorchInsight/blob/master/classification/models/imagenet/resnet_cbam.py
+# Note:   modified for onehot sequence input
+#         add attention module using CBAM
 
 import torch
 import torch.nn as nn
@@ -10,6 +39,8 @@ from torch.nn import init
 import torch.nn.functional as F
 
 from .BasicModule import BasicModule
+
+__all__  = ['BasicBlock', 'Bottleneck', 'ResNet', 'ResidualNet']
 
 class BasicConv(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, 
@@ -106,6 +137,49 @@ def conv1x3(in_planes, out_planes, stride=1):
                      padding=(0,1), bias=False)
 
 class BasicBlock(nn.Module):
+    '''Basic residual Block with conv1x3.
+
+    Parameters
+    ----------
+    inplanes : int
+        Number of input channels
+    planes : int
+        Number of output channels produced by the convolution
+    stride : int, optional
+        Number of stride, Default is 1.
+    use_cbam : bool, optional
+        Whether to use CBAM, Default is False.
+
+    Attributes
+    ----------
+    conv1 : conv1x3
+        The convolutional neural network component of the model.
+    bn1 : nn.BatchNorm2d
+        The Batch Normalization 
+    conv2 : conv1x3
+        The convolutional neural network component of the model.
+    bn2 : nn.BatchNorm2d
+        The Batch Normalization 
+    relu : nn.ReLU
+        The relu activation Module
+    pool : nn.Module
+        The pool Module
+    cbam : CBAM
+        Convolutional Block Attention Module
+
+    Tensor flows
+    ----------
+    -> residual = x
+    
+    -> relu(bn1(conv1(x)))
+    
+    -> bn2(conv2(x))
+
+    -> cbam(x) if use_cbam
+
+    -> relu(x + residual)
+
+    '''
     expansion = 1
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, use_cbam=False):
@@ -144,7 +218,58 @@ class BasicBlock(nn.Module):
 
         return out
 
+
 class Bottleneck(nn.Module):
+    '''Basic residual Bottleneck with conv2d.
+
+    Parameters
+    ----------
+    inplanes : int
+        Number of input channels
+    planes : int
+        Number of output channels produced by the convolution
+    stride : int, optional
+        Number of stride, Default is 1.
+    use_cbam : bool, optional
+        Whether to use CBAM, Default is False.
+
+    Attributes
+    ----------
+    conv1 : nn.Conv2d
+        The convolutional neural network component of the model.
+    bn1 : nn.BatchNorm2d
+        The Batch Normalization 
+    conv2 : nn.Conv2d
+        The convolutional neural network component of the model.
+    bn2 : nn.BatchNorm2d
+        The Batch Normalization 
+    conv3 : nn.Conv2d
+        The convolutional neural network component of the model.
+    bn3 : nn.BatchNorm2d
+        The Batch Normalization 
+    relu : nn.ReLU
+        The relu activation Module
+    pool : nn.Module
+        The pool Module
+    cbam : CBAM
+        Convolutional Block Attention Module
+        
+    Tensor flows
+    ----------
+    -> residual = x
+    
+    -> relu(bn1(conv1(x)))
+    
+    -> relu(bn2(conv2(x)))
+
+    -> bn3(conv3(x))
+
+    -> cbam(x) if use_cbam
+
+    -> relu(x + residual)
+
+    '''
+
     expansion = 4
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, use_cbam=False):
@@ -190,26 +315,104 @@ class Bottleneck(nn.Module):
 
         return out
 
+
 class ResNet(BasicModule):
-    def __init__(self, block, layers,  network_type, num_classes, att_type=None):
+    '''ResNet module in NvTK.
+
+    Parameters
+    ----------
+    block : BasicBlock, Bottleneck
+        One of the Residual Block Module
+    layers : list of int
+        List of Number of output channels in ResNet.
+        (e.g. `layers=[2, 2, 2, 2]`)
+    network_type : str
+        Type of ResNet, Default is None.
+        Should be one of `'ImageNet', 'CIFAR10', 'CIFAR100', None`
+        (e.g. `network_type='ImageNet'`)
+    num_classes : int, optional
+        Number of output classes
+    att_type : str, optional
+        Whether to use CBAM_ResNet, Default is None.
+
+    Attributes
+    ----------
+    inplanes : int
+
+    network_type : str
+
+    conv1 : nn.Conv2d
+        The convolutional neural network component of the model.
+    bn1 : nn.BatchNorm2d
+        The Batch Normalization 
+    conv2 : nn.Conv2d
+        The convolutional neural network component of the model.
+    layer1 : nn.Sequential
+        The Residual convolutional layer
+    bam1 : CBAM
+        The Convolutional Block Attention Module
+    layer2 : nn.Sequential
+        The Residual convolutional layer
+    bam2 : CBAM
+        The Convolutional Block Attention Module
+    layer3 : nn.Sequential
+        The Residual convolutional layer
+    bam3 : CBAM
+        The Convolutional Block Attention Module
+    layer4 : nn.Sequential
+        The Residual convolutional layer
+    fc : nn.Linear
+        The Full connectted layer
+        
+    Tensor flows
+    ----------
+    -> x if network_type is None
+
+    -> relu(bn1(conv1(x))) if network_type is CIFAR
+    
+    -> maxpool(relu(bn1(conv1(x)))) if network_type is ImageNet
+    
+    -> layer1(x)
+    
+    -> bam1(x) if bam1
+
+    -> layer2(x)
+    
+    -> bam2(x) if bam2
+
+    -> layer3(x)
+    
+    -> bam3(x) if bam3
+
+    -> layer4(x)
+    
+    -> Faltten(x)
+
+    -> fc(x) if fc
+
+    '''
+    
+    def __init__(self, block, layers, network_type=None, num_classes=None, att_type=None):
         self.inplanes = 64
         super(ResNet, self).__init__()
         self.network_type = network_type
         # different model config between ImageNet and CIFAR 
-        if network_type == "ImageNet":
+        if network_type is None:
+            self.conv1 = None
+        elif network_type == "ImageNet":
             self.conv1 = nn.Conv2d(4, 64, kernel_size=(1, 7), stride=1, padding=(0,3), bias=False)
             self.maxpool = nn.MaxPool2d(kernel_size=(1, 3), stride=1, padding=(0,1))
             self.avgpool = nn.AdaptiveAvgPool2d(1)
-        else:
+        elif network_type == "CIFAR10" or network_type == "CIFAR100" :
             self.conv1 = nn.Conv2d(4, 64, kernel_size=(1, 3), stride=1, padding=(0,1), bias=False)
 
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
 
-        if att_type=='BAM':
-            self.bam1 = BAM(64*block.expansion)
-            self.bam2 = BAM(128*block.expansion)
-            self.bam3 = BAM(256*block.expansion)
+        if att_type=='CBAM':
+            self.bam1 = CBAM(64*block.expansion)
+            self.bam2 = CBAM(128*block.expansion)
+            self.bam3 = CBAM(256*block.expansion)
         else:
             self.bam1, self.bam2, self.bam3 = None, None, None
 
@@ -217,8 +420,11 @@ class ResNet(BasicModule):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=1, att_type=att_type)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=1, att_type=att_type)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=1, att_type=att_type)
-
-        self.fc = nn.Linear(512 * block.expansion, num_classes)
+        
+        if num_classes is not None:
+            self.fc = nn.Linear(512 * block.expansion, num_classes)
+        else:
+            self.fc = None
 
         init.kaiming_normal(self.fc.weight)
         for key in self.state_dict():
@@ -251,12 +457,14 @@ class ResNet(BasicModule):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        if len(x.shape) == 3: # (B, 4, L)
-            x = x.unsqueeze(2) # (B, 4, 1, L) update 2D sequences
+        if self.network_type is not None: # which should embed sequence directly
+            if len(x.shape) == 3: # (B, 4, L)
+                x = x.unsqueeze(2) # (B, 4, 1, L) update 2D sequences
+            
+            x = self.conv1(x)
+            x = self.bn1(x)
+            x = self.relu(x)
 
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
         if self.network_type == "ImageNet":
             x = self.maxpool(x)
 
@@ -279,8 +487,12 @@ class ResNet(BasicModule):
         else:
             x = F.avg_pool2d(x, 4)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+
+        if not self.fc is None:
+            x = self.fc(x)
+
         return x
+        
 
 def ResidualNet(network_type, depth, num_classes, att_type):
     assert network_type in ["ImageNet", "CIFAR10", "CIFAR100"], "network type should be ImageNet or CIFAR10 / CIFAR100"

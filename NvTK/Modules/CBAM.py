@@ -1,7 +1,19 @@
 ''' 
-    Code:   https://github.com/Jongchan/attention-module/blob/master/MODELS/cbam.py
-    Note:   1d-CBAM
+    References
+    ----------
+    [1](http://arxiv.org/abs/1807.06521v2)
+        @InProceedings{Woo_2018_ECCV,
+            author = {Woo, Sanghyun and Park, Jongchan and Lee, Joon-Young and Kweon, In So},
+            title = {CBAM: Convolutional Block Attention Module},
+            booktitle = {Proceedings of the European Conference on Computer Vision (ECCV)},
+            month = {September},
+            year = {2018}
+        }
 '''
+
+# Code:   https://github.com/Jongchan/attention-module/blob/master/MODELS/cbam.py
+# Note:   Jiaqili@zju.edu.cn modified it as 1d-CBAM
+
 import numpy as np
 
 import torch
@@ -94,7 +106,39 @@ class SpatialGate(nn.Module):
 
 
 class CBAM(nn.Module):
-    '''CBAM'''
+    '''CBAM: Convolutional Block Attention Module (1d) in NvTK.
+
+    Parameters
+    ----------
+    gate_channels : int
+        Number of gate channels
+    reduction_ratio : int, optional
+        Number of reduction ratio in ChannelGate
+    pool_types : list of str, optional
+        List of Pooling types in ChannelGate, Default is ['avg', 'max'].
+        Should be in the range of `['avg', 'max', 'lse']`
+        (e.g. `pool_types=['avg', 'max', 'lse']`)
+    no_spatial : bool, optional
+        Whether not to use SpatialGate, Default is False.
+
+    Attributes
+    ----------
+    no_spatial : bool
+
+    ChannelGate : nn.Module
+        The Channel Gate Module in CBAM
+    SpatialGate : nn.Module
+        The Spatial Gate Module in CBAM
+    attention : nn.Tensor
+        The overall attention weights 
+
+    Tensor flows
+    ----------
+    -> ChannelGate(x)
+
+    -> SpatialGate(x_out)(x) if not no_spatial
+    
+    '''
     def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], no_spatial=False):
         super(CBAM, self).__init__()
         self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types)
@@ -112,21 +156,22 @@ class CBAM(nn.Module):
         return x_out
 
     def get_attention(self):
+        '''return the attention weights in a batch'''
         return self.attention
 
 
-def get_cbam_attention(model, data_loader, device=torch.device("cuda")):
-    attention = []
+# def get_cbam_attention(model, data_loader, device=torch.device("cuda")):
+#     attention = []
     
-    model.eval()
-    for data, target in data_loader:
-        data, target = data.to(device), target.to(device)
-        pred = model(data)
-        batch_attention = model.Embedding.conv1.cbam.get_attention().cpu().data.numpy()
-        attention.append(batch_attention)
+#     model.eval()
+#     for data, target in data_loader:
+#         data, target = data.to(device), target.to(device)
+#         pred = model(data)
+#         batch_attention = model.Embedding.conv1.cbam.get_attention().cpu().data.numpy()
+#         attention.append(batch_attention)
 
-    attention = np.concatenate(attention, 0)
-    return attention
+#     attention = np.concatenate(attention, 0)
+#     return attention
 
 # attention = get_cbam_attention(model, test_loader, device)
 # filter_attention = attention.mean(0).mean(-1)

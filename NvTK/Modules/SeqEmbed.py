@@ -16,7 +16,7 @@ class BasicConvEmbed(nn.Module):
         self.conv = nn.Conv1d(in_planes, out_planes, kernel_size=kernel_size, 
                         **conv_args)
         self.bn = nn.BatchNorm1d(out_planes, eps=1e-5, momentum=0.01, affine=True) if bn else None
-        self.activation = activation(**activation_args) if activation is not None else None
+        self.activation = activation(**activation_args) if activation else None
         self.pool = pool(**pool_args) if pool else None
 
     def forward(self, x):

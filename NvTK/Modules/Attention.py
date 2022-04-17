@@ -1,6 +1,50 @@
 '''
-    Code:   https://github.com/thomlake/pytorch-attention/blob/master/attention/attention.py
+    References
+    ----------
+    [1](https://arxiv.org/abs/1410.5401)
+        @article{graves2014neural,
+          title={Neural turing machines},
+          author={Graves, Alex and Wayne, Greg and Danihelka, Ivo},
+          journal={arXiv preprint arXiv:1410.5401},
+          year={2014}
+        }
+    [2](https://arxiv.org/abs/1503.08895)
+        @inproceedings{sukhbaatar2015end,
+            title={End-to-end memory networks},
+            author={Sukhbaatar, Sainbayar and Weston, Jason and Fergus, Rob and others},
+            booktitle={Advances in neural information processing systems},
+            pages={2440--2448},
+            year={2015}
+        }
+    [3](https://distill.pub/2016/augmented-rnns/)
+        @article{olah2016attention,
+            title={Attention and augmented recurrent neural networks},
+            author={Olah, Chris and Carter, Shan},
+            journal={Distill},
+            volume={1},
+            number={9},
+            pages={e1},
+            year={2016}
+        }
+    [4](https://arxiv.org/abs/1409.0473)
+        @article{bahdanau2014neural,
+            title={Neural machine translation by jointly learning to align and translate},
+            author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
+            journal={arXiv preprint arXiv:1409.0473},
+            year={2014}
+        }
+    [5](https://arxiv.org/abs/1506.03134)
+        @inproceedings{vinyals2015pointer,
+            title={Pointer networks},
+            author={Vinyals, Oriol and Fortunato, Meire and Jaitly, Navdeep},
+            booktitle={Advances in Neural Information Processing Systems},
+            pages={2692--2700},
+            year={2015}
+        }
 '''
+
+# Code:   https://github.com/thomlake/pytorch-attention/blob/master/attention/attention.py
+
 from torch.autograd import Variable
 from torch.nn.functional import sigmoid, softmax
 
@@ -42,6 +86,7 @@ def fill_context_mask(mask, sizes, v_mask, v_unmask):
         Value to use for masked positions.
     v_unmask: float
         Value to use for unmasked positions.
+        
     Returns
     -------
     mask:
@@ -154,48 +199,6 @@ def attend(query, context, value=None, score='dot', normalize='softmax',
     each item in the batch. Appropriate masks will be created from these lists.
     Note that the size of output does not depend on the number of context vectors.
     Because of this, context positions are truly unaccounted for in the output.
-    References
-    ----------
-    [1](https://arxiv.org/abs/1410.5401)
-        @article{graves2014neural,
-          title={Neural turing machines},
-          author={Graves, Alex and Wayne, Greg and Danihelka, Ivo},
-          journal={arXiv preprint arXiv:1410.5401},
-          year={2014}
-        }
-    [2](https://arxiv.org/abs/1503.08895)
-        @inproceedings{sukhbaatar2015end,
-            title={End-to-end memory networks},
-            author={Sukhbaatar, Sainbayar and Weston, Jason and Fergus, Rob and others},
-            booktitle={Advances in neural information processing systems},
-            pages={2440--2448},
-            year={2015}
-        }
-    [3](https://distill.pub/2016/augmented-rnns/)
-        @article{olah2016attention,
-            title={Attention and augmented recurrent neural networks},
-            author={Olah, Chris and Carter, Shan},
-            journal={Distill},
-            volume={1},
-            number={9},
-            pages={e1},
-            year={2016}
-        }
-    [4](https://arxiv.org/abs/1409.0473)
-        @article{bahdanau2014neural,
-            title={Neural machine translation by jointly learning to align and translate},
-            author={Bahdanau, Dzmitry and Cho, Kyunghyun and Bengio, Yoshua},
-            journal={arXiv preprint arXiv:1409.0473},
-            year={2014}
-        }
-    [5](https://arxiv.org/abs/1506.03134)
-        @inproceedings{vinyals2015pointer,
-            title={Pointer networks},
-            author={Vinyals, Oriol and Fortunato, Meire and Jaitly, Navdeep},
-            booktitle={Advances in Neural Information Processing Systems},
-            pages={2692--2700},
-            year={2015}
-        }
     """
     q, c, v = query, context, value
     if v is None:
