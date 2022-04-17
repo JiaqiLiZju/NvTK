@@ -61,17 +61,19 @@ def get_resnet(output_size, layers=18, tasktype='regression'):
         model = resnet50(output_size)
     elif layers == 101:
         model = resnet101(output_size)
-    
     model.fc = BasicPredictor(512, output_size, tasktype=tasktype)
     return model
 
 
 def get_transformer(input_size, output_size, tasktype='regression'):
     from NvTK import TransformerEncoder
-    model = BaselineCNN(output_size, emb_planes=256, activation=False, pool=False, GAP=1, tasktype=tasktype)
+    model = BasicModel()
+    model.Embedding = BasicConvEmbed(out_planes=128, kernel_size=15, activation=None, pool=nn.AvgPool1d, pool_args={'kernel_size': 15})
     data = torch.zeros(input_size)
-    _, d_model, seq_len = model.Embedding(data).shape
-    model.Encoder = TransformerEncoder(seq_len, d_model=d_model, embedding=nn.Sequential())
+    _, d_model, seq_len = model.Embedding.forward(data).shape
+    model.Encoder = TransformerEncoder(seq_len, d_model=d_model, n_layers=2, n_heads=2, d_ff=32, embedding=nn.Sequential())
+    model.Decoder = BasicLinearModule(d_model, 128)
+    model.Predictor = BasicPredictor(128, output_size, tasktype=tasktype)
     return model
 
 
