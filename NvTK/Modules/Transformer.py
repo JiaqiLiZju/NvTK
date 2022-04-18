@@ -1,8 +1,34 @@
 '''
-    Code:   jiaqili@zju.edu
-            https://github.com/beiweixiaoxu/transformerencoder/blob/master/TransformerEncoder.py
-    Note:   modified for onehot sequence input
+    References
+    ----------
+    @misc{https://doi.org/10.48550/arxiv.1706.03762,
+        doi = {10.48550/ARXIV.1706.03762},
+        url = {https://arxiv.org/abs/1706.03762},
+        author = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and Kaiser, Lukasz and Polosukhin, Illia},
+        keywords = {Computation and Language (cs.CL), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
+        title = {Attention Is All You Need},
+        publisher = {arXiv},
+        year = {2017},
+        copyright = {arXiv.org perpetual, non-exclusive license}
+    }
+
+    @inproceedings{wolf-etal-2020-transformers,
+        title = "Transformers: State-of-the-Art Natural Language Processing",
+        author = "Thomas Wolf and Lysandre Debut and Victor Sanh and Julien Chaumond and Clement Delangue and Anthony Moi and Pierric Cistac and Tim Rault and Rémi Louf and Morgan Funtowicz and Joe Davison and Sam Shleifer and Patrick von Platen and Clara Ma and Yacine Jernite and Julien Plu and Canwen Xu and Teven Le Scao and Sylvain Gugger and Mariama Drame and Quentin Lhoest and Alexander M. Rush",
+        booktitle = "Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+        month = oct,
+        year = "2020",
+        address = "Online",
+        publisher = "Association for Computational Linguistics",
+        url = "https://www.aclweb.org/anthology/2020.emnlp-demos.6",
+        pages = "38--45"
+    }
+
 '''
+
+# Code:   jiaqili@zju.edu
+#         https://github.com/beiweixiaoxu/transformerencoder/blob/master/TransformerEncoder.py
+# Note:   modified for onehot sequence input
 
 import logging
 import numpy as np
@@ -104,7 +130,9 @@ class EncoderLayer(nn.Module):
 
 
 class TransformerEncoder(BasicModule):
-    """TransformerEncoder is a stack of N encoder layers.
+    """Transformer Encoder in NvTK. 
+    TransformerEncoder is a stack of MultHeadAttention encoder layers.
+
     Args:
         vocab_size (int)    : vocabulary size (vocabulary: collection mapping token to numerical identifiers)
         seq_len    (int)    : input sequence length
@@ -114,10 +142,12 @@ class TransformerEncoder(BasicModule):
         p_drop     (float)  : dropout value
         d_ff       (int)    : dimension of the feedforward network model
         pad_id     (int)    : pad token id
+
     Examples:
     >>> encoder = TransformerEncoder(vocab_size=1000, seq_len=512)
     >>> inp = torch.arange(512).repeat(2, )
     >>> encoder(inp)
+    
     """
     def __init__(self, seq_len, vocab_size=4, d_model=512, n_layers=6, n_heads=8, p_drop=0.1, d_ff=2048, pad_id=torch.zeros(4), embedding=None, embedding_weight=None, fix_embedding=False):
         super(TransformerEncoder, self).__init__()
@@ -195,12 +225,32 @@ class TransformerEncoder(BasicModule):
         return outputs #, attention_weights
 
     def get_attention_padding_mask(self, q, k, pad_id):
+        """Mask Attention Padding.
+
+        Args:
+            q   (torch.Tensor) : query tensor
+            k   (torch.Tensor) : key tensor
+            pad_id  (int)   : pad token id
+
+        Return:
+            attn_pad_mask (torch.BoolTensor)  :   Attention Padding Masks
+        """
         attn_pad_mask = (k.sum(1) == 0 ).unsqueeze(1).repeat(1, q.size(-1), 1)
         # k.eq(pad_id).unsqueeze(1).repeat(1, q.size(1), 1)
         # |attn_pad_mask| : (batch_size, q_len, k_len)
         return attn_pad_mask
 
     def get_sinusoid_table(self, seq_len, d_model):
+        """Sinusoid Position encoding table in transformer.
+
+        Args:
+            seq_len   (int) : sequence length
+            d_model   (int) : model dimension
+
+        Return:
+            sinusoid_table (torch.FloatTensor)  :   Sinusoid Position encoding table
+
+        """
         def get_angle(pos, i, d_model):
             return pos / np.power(10000, (2 * (i // 2)) / d_model)
 
@@ -214,20 +264,26 @@ class TransformerEncoder(BasicModule):
         return torch.FloatTensor(sinusoid_table)
 
     def get_attention(self):
+        """Get the attention weights of Transformer Encoder
+
+        Return:
+            attention_weights (torch.FloatTensor)  :    attention weights 
+
+        """
         # |attn_weights| : list of (n_layers, batch_size, n_heads, seq_len, seq_len)
         return self.attention_weights
 
 
-def get_transformer_attention(model, data_loader, device=torch.device("cuda")):
-    attention = []
+# def get_transformer_attention(model, data_loader, device=torch.device("cuda")):
+#     attention = []
     
-    model.eval()
-    for data, target in data_loader:
-        data, target = data.to(device), target.to(device)
-        pred = model(data)
-        batch_attention = model.Embedding.get_attention()
-        batch_attention = np.array([atten.cpu().data.numpy() for atten in batch_attention]).swapaxes(0,1)
-        attention.append(batch_attention)
+#     model.eval()
+#     for data, target in data_loader:
+#         data, target = data.to(device), target.to(device)
+#         pred = model(data)
+#         batch_attention = model.Embedding.get_attention()
+#         batch_attention = np.array([atten.cpu().data.numpy() for atten in batch_attention]).swapaxes(0,1)
+#         attention.append(batch_attention)
 
-    attention = np.concatenate(attention, 0) # (size, n_layers, n_heads,seq_len, seq_len)
-    return attention
+#     attention = np.concatenate(attention, 0) # (size, n_layers, n_heads,seq_len, seq_len)
+#     return attention

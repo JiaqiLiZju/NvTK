@@ -1,8 +1,22 @@
+"""Basic module in NvTK.
+This module provides 
+1.  `BasicModule` class - the general abstract class
+2.  `BasicConv1d` class - Basic Convolutional Module (1d)
+3.  `BasicRNNModule` class - Basic RNN(LSTM) Module in batch-first style
+3.  `BasicLinearModule`
+4.  `BasicPredictor` Module
+5.  `BasicLoss` Module
+and supporting methods.
+"""
+
 import random, time, logging
 import numpy as np
 
 import torch
 from torch import nn
+
+__all__ = ["BasicModule", "BasicConv1d", "BasicRNNModule", "BasicLinearModule", "BasicPredictor", "BasicLoss"]
+
 
 class BasicModule(nn.Module):
     """Basic module class in NvTK."""
@@ -299,7 +313,7 @@ class BasicLinearModule(BasicModule):
         return x
 
 
-class BasicPredictor(nn.Module):
+class BasicPredictor(BasicModule):
     """BasicPredictor Module in NvTK.
     
     BasicPredictor support task types of 'none', 'binary_classification', 'classification', 'regression';
@@ -390,3 +404,59 @@ class BasicPredictor(nn.Module):
         """
         self.switch_task('none')
 
+
+class BasicLoss(nn.Module):
+    """BasicLoss Module in NvTK.
+    
+    BasicLoss support task types of 'binary_classification', 'classification', 'regression';
+    1. 'binary_classification' : BCELoss function
+    2. 'classification' : CrossEntropyLoss function
+    3. 'regression' : MSELoss function
+
+    Parameters
+    ----------
+    tasktype : str, optional
+        Specify the task type, Default is "binary_classification".
+        (e.g. `tasktype="regression"`)
+    reduction : str, optional
+        Specifies the reduction to apply to the output: `'none'` | `'mean'` | `'sum'`.
+
+    Attributes
+    ----------
+    supported_tasks : currently supported task types
+    tasktype : task type of Predictor
+    loss : loss function
+
+    """
+    def __init__(self, tasktype='binary_classification', reduction='mean'):
+        super().__init__()
+        self.supported_tasks = ['binary_classification', 'classification', 'regression']
+
+        self.tasktype = tasktype
+        self.reduction = reduction
+
+        self.switch_task(tasktype) # init self.loss
+
+    def forward(self, pred, target):
+        return self.loss(pred, target)
+
+    def switch_task(self, tasktype):
+        """switch to specified task type
+
+        Parameters
+        ----------
+        tasktype : str
+            Specify the task type (e.g. `tasktype="regression"`)
+        """
+
+        msg = 'tasktype: %s not supported, check the document' % tasktype
+        assert tasktype in self.supported_tasks, msg
+
+        if tasktype == 'classification':
+            self.loss = nn.CrossEntropyLoss(reduction=self.reduction)
+        elif tasktype == 'binary_classification':
+            self.loss = nn.BCELoss(reduction=self.reduction)
+        elif tasktype == 'regression':
+            self.loss = nn.MSELoss(reduction=self.reduction)
+
+        self.tasktype = tasktype

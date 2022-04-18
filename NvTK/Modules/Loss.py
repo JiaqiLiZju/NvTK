@@ -1,5 +1,4 @@
 
-
 class BCEFocalLoss(nn.Module):
     def __init__(self, gamma=2, weight=None, reduction='mean'):
         super().__init__()
@@ -45,6 +44,7 @@ class MTLoss(nn.Module):
 
         MTloss = loss + self.lamda * L1_loss
         return MTloss
+
 
 class scMTLoss(nn.Module):
     def __init__(self, annotation):
