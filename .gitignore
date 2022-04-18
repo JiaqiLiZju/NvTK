@@ -4,6 +4,7 @@ excludesfile = ~/.gitignore_global
 .DS_Store
 
 # ignore docs/build 
+docs/
 docs/build
 
 # ignore cache
