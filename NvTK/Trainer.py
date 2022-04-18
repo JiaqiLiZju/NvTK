@@ -279,6 +279,18 @@ def show_train_log(loss_train=None, loss_val=None, acc_val=None,
                     style="seaborn-colorblind",
                     fig_title="Training Log",
                     dpi=500):
+    """function show train log in NvTK.
+
+    Parameters
+    ----------
+    loss_train : list
+        traing loss
+    loss_val : list
+        validation loss
+    kernel_size : int, optional
+        Size of the convolving kernel
+
+    """
     
     os.makedirs(output_dir, exist_ok=True)
     

@@ -1,3 +1,4 @@
+import sys
 import torch
 from .Config import *
 from .Evaluator import calculate_roc, calculate_pr
@@ -116,7 +117,7 @@ def execute_nvtk_explain(config):
 
 def initialize_logger(output_path, verbosity=1):
     """
-    Initializes the logger for nvtk.
+    Initializes the logger for NvTK.
     This function can only be called successfully once.
     If the logger has already been initialized with handlers,
     the function exits. Otherwise, it proceeds to set the
