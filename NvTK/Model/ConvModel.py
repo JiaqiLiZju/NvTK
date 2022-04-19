@@ -1,7 +1,14 @@
-''' 
-    Convolutional Models in NvTK
-    Code:   jiaqili@zju.edu
-'''
+"""Convolutional Models in NvTK.
+This module provides 
+
+1.  `CNN` class - Convolutional Model in NvTK
+
+2.  `CAN` class - Convolutional Attention Model using CBAM
+
+"""
+
+# Code:   jiaqili@zju.edu
+
 from collections import OrderedDict
 
 import torch
@@ -14,8 +21,8 @@ from ..Modules import CBAM
 
 
 class CNN(BasicModel):
-    '''
-    CNN Model in NvTK
+    '''Convolutional Model in NvTK.
+
     contain Embedding, Encoder, Decoder, Predictor
     '''
     def __init__(self, output_size, 

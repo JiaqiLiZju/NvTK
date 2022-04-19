@@ -1,8 +1,12 @@
 """Sequence Embedding module in NvTK.
 This module provides 
+
 1.  `BasicConvEmbed` class - Basic Convolutional Embedding Module (1d)
+
 2.  `RevCompConvEmbed` class - Convolutional Embedding Module considering Reverse-Complement Sequence 
+
 3.  `CharConvModule` class - Wide and shallow Charactor-level Convolution Module
+
 and supporting methods.
 """
 
@@ -13,7 +17,7 @@ import logging
 import torch
 import torch.nn as nn
 
-__all__ = ["BasicConvEmbed", "RevComp", "RevCompConvEmbed"]
+__all__ = ["BasicConvEmbed", "RevComp", "RevCompConvEmbed", "CharConvModule"]
 
 class BasicConvEmbed(nn.Module):
     ''' Basic Convolutional Embedding Module in NvTK.

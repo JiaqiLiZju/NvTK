@@ -1,7 +1,12 @@
-''' 
-    Basic Model in NvTK
-    Code: jiaqili@zju.edu
-'''
+"""Basic Model in NvTK.
+This module provides 
+
+1.  `BasicModel` class - the general abstract class
+
+and supporting methods.
+"""
+
+# Code: jiaqili@zju.edu
 
 import logging
 
@@ -12,10 +17,32 @@ from ..Modules import BasicModule
 
 # TODO maybe not suitable for probability models
 class BasicModel(BasicModule):
-    '''
-    Basis Model in NvTK
-    contain Embedding, Encoder, Decoder, Predictor
-    '''
+    """Basic Model class in NvTK.
+    Prototype for a sequence-based deep-learning model. 
+    BasicModel contains Embedding, Encoder, Decoder, Predictor layers.
+    
+    Embedding : embed the sequence into vectors
+
+    Encoder : encode the inputs into feature-maps
+
+    Decoder : decode the encoded inputs (Flattened) into higher feature-maps
+
+    Predictor : mapp the decoded feature-maps into task-specific space 
+    and make prediction
+
+    Tensor flows
+    ------------
+    -> Embedding(x)
+
+    -> Encoder(x)
+
+    -> Flatten(x)
+
+    -> Decoder(x)
+
+    -> Predictor(x)
+
+    """
     def __init__(self):
         super().__init__()
         self.Embedding = nn.Sequential()

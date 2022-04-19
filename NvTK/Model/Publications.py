@@ -1,3 +1,19 @@
+""" Reimplement of Publicated Model Archiectures applicable in NvTK.
+This module provides 
+
+1.  `NINCNN` - Network in Network CNN model Archiecture
+
+2. `DeepSEA` - DeepSEA architecture (Zhou & Troyanskaya, 2015).
+
+3. `Beluga` - DeepSEA architecture used in Expecto (Zhou & Troyanskaya, 2019).
+
+4. `DanQ` - DanQ architecture (Quang & Xie, 2016).
+
+5. `Basset` - Basset architecture (Kelley, 2016).
+
+and supporting methods.
+"""
+
 import logging
 import numpy as np
 
@@ -6,16 +22,26 @@ import torch.nn as nn
 
 from ..Modules import BasicModule
 
+__all__ = ['NINCNN', 'DeepSEA', 'Beluga', 'DanQ', 'Basset']
+
 # TODO update Nvwa model
 # class Nvwa(BasicModule):
 #     def __init__(self, sequence_length, n_genomic_features):
 #         super().__init__()
 
 class NINCNN(BasicModule):
-    '''
-        Code:   https://arxiv.org/pdf/1312.4400.pdf
-        Note:   
-    '''
+    """
+        @misc{https://doi.org/10.48550/arxiv.1312.4400,
+            doi = {10.48550/ARXIV.1312.4400},
+            url = {https://arxiv.org/abs/1312.4400},
+            author = {Lin, Min and Chen, Qiang and Yan, Shuicheng},
+            keywords = {Neural and Evolutionary Computing (cs.NE), Computer Vision and Pattern Recognition (cs.CV), Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
+            title = {Network In Network},
+            publisher = {arXiv},
+            year = {2013},
+            copyright = {arXiv.org perpetual, non-exclusive license}
+        }
+    """
     def __init__(self, sequence_length, n_genomic_features):
         super().__init__()
         self.conv1 = nn.Sequential(
@@ -257,7 +283,8 @@ class DanQ(nn.Module):
 
 
 class Basset(BasicModule):
-    '''Deep convolutional neural networks for DNA sequence analysis.
+    '''Basset architecture (Kelley, 2016).
+    Deep convolutional neural networks for DNA sequence analysis.
     The architecture and optimization parameters for the DNaseI-seq compendium analyzed in the paper.
     '''
     def __init__(self, sequence_length, n_genomic_features):

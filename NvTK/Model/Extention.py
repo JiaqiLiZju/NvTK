@@ -1,5 +1,5 @@
 """
-Utilities for loading and instantiating extended modules and models
+Extention utilities for loading and instantiating extended modules and models
 """
 
 import os, sys, importlib, types

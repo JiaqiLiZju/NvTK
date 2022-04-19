@@ -1,3 +1,5 @@
+"""Evaluate Metrics provided in NvTK."""
+
 import os, logging, itertools
 
 import numpy as np

@@ -1,11 +1,23 @@
+"""Influence based model interpretation methods in NvTK.
+
+Influence quantified the Feed Forward Modification/Nullification of input,
+which measured the influence on each single task.
+
+"""
+
 import torch
 import logging
 import itertools
 import numpy as np
 import pandas as pd
 
+__all__ = ["foldchange", "correlation_ratio",
+    "channel_target_influence", "layer_channel_combination_influence",
+    "input_channel_target_influence", "input_layer_channel_combination_influence"]
+
 
 def foldchange(origin, modified):
+    """caculate the fold change between modified and origin outputs."""
     return modified / origin
     # return np.square(modified - origin)
 
@@ -76,7 +88,7 @@ class ModifyInputHook():
 
 
 def channel_target_influence(model, hook_module, data_loader, device=torch.device("cuda")):
-    criterion = torch.nn.BCELoss(reduction='none').to(device) # gene * cell
+    # criterion = torch.nn.BCELoss(reduction='none').to(device) # gene * cell
     target, pred_orig, loss_orig, pred_modified_foldchange = [], [], [], []
 
     # a normal feed-forward
@@ -86,15 +98,15 @@ def channel_target_influence(model, hook_module, data_loader, device=torch.devic
             x_tensor = x_tensor.to(device)
             t = t.to(device)
             output = model(x_tensor)
-            loss = criterion(output, t)
+            # loss = criterion(output, t)
 
             target.append(t.cpu().data.numpy())
             pred_orig.append(output.cpu().data.numpy())
-            loss_orig.append(loss.cpu().data.numpy())
+            # loss_orig.append(loss.cpu().data.numpy())
 
         target = np.vstack(target)
         pred_orig = np.vstack(pred_orig)
-        loss_orig = np.vstack(loss_orig)
+        # loss_orig = np.vstack(loss_orig)
 
         # feed-forward with ModifyOutputHook
         if isinstance(hook_module, torch.nn.modules.conv.Conv1d):
@@ -111,12 +123,12 @@ def channel_target_influence(model, hook_module, data_loader, device=torch.devic
                 x_tensor = x_tensor.to(device)
                 t = t.to(device)
                 output = model(x_tensor) # batch_size * output_size
-                loss = criterion(output, t)
+                # loss = criterion(output, t)
 
                 pred_modified.append(output.cpu().data.numpy())
-                loss_modified.append(loss.cpu().data.numpy())
+                # loss_modified.append(loss.cpu().data.numpy())
             pred_modified = np.vstack(pred_modified) 
-            loss_modified = np.vstack(loss_modified) 
+            # loss_modified = np.vstack(loss_modified) 
 
             fc = foldchange(pred_orig, pred_modified).mean(0) # output_size
             # fc = foldchange(loss_orig, loss_modified).mean(0) # output_size
@@ -226,6 +238,7 @@ def input_layer_channel_combination_influence(model, hook_module, data_loader, d
 
 
 def correlation_ratio(categories, measurements):
+    """Correlation Ration (ETA) between categories and measurements."""
     fcat, _ = pd.factorize(categories)
     cat_num = np.max(fcat)+1
     y_avg_array = np.zeros(cat_num)

@@ -7,42 +7,102 @@
     year={2018}
 }
 '''
+__all__ = ["hyperparameter_tune"]
+
+from torch import nn
 from torch.optim import Adam
 
 from ray import tune
+from ray.tune.schedulers import ASHAScheduler
 
-from . import Model
+from .Model import CNN
 from .Trainer import Trainer
 
-def objective(module, model_args):
-    model = module(model_args)
+# wrap data loading and training in functions,
+# make some network parameters configurable,
+# add checkpointing (optional),
+# and define the search space for the model tuning
 
-    optimizer = Adam(model.parameters(), lr=1e-3)
-    criterion = nn.BCELoss()
-    trainer = Trainer(model, criterion, optimizer, device)
-    batch_losses, average_loss = trainer.train_per_epoch(train_loader, epoch, verbose_step=5)
-    return average_loss
+def train_model(config, model_args, train_loader, validate_loader, 
+                    criterion = nn.BCELoss(), 
+                    device=torch.device("cuda")):
 
-
-def training_function(config):
+    # TODO support more NvTK architectures
     # Hyperparameters
-    alpha, beta = config["alpha"], config["beta"]
-    for step in range(10):
-        # Iterative training function - can be any arbitrary training procedure.
-        intermediate_score = objective(step, alpha, beta)
-        # Feed the score back back to Tune.
-        tune.report(mean_loss=intermediate_score)
+    model = CNN(model_args, **config).to(device)
+    
+    optimizer = Adam(model.parameters(), lr=1e-3)
+    trainer = Trainer(model, criterion, optimizer, device)
+    
+    # Train for 10 EPOCH
+    for _ in range(10):
+        # validation metrics
+        _, val_loss, val_pred_prob, val_target_prob = trainer.predict(validate_loader)
+        val_metric = trainer.evaluate(val_pred_prob, val_target_prob)
+                
+        # Send the current training result back to Tune
+        tune.report(acc=val_metric, loss=val_loss)
 
 
-analysis = tune.run(
-    training_function,
-    config={
-        "alpha": tune.grid_search([0.001, 0.01, 0.1]),
-        "beta": tune.choice([1, 2, 3])
-    })
+def hyperparameter_tune(search_space=None, num_samples=10, max_num_epochs=10, gpus_per_trial=1):
+    """Hyper Parameter Tune in NvTK.
 
-print("Best config: ", analysis.get_best_config(
-    metric="mean_loss", mode="min"))
+    Currently, it only support NvTK.CNN architectures.
+    The search_space define the Ray Tune’s search space, 
+    where Tune will now randomly sample a combination of parameters.
+    It will then train a number of models in parallel 
+    and find the best performing one among these.
+    We also use the ASHAScheduler which will terminate bad performing trials early.
 
-# Get a dataframe for analyzing trial results.
-df = analysis.results_df
+    Parameters
+    ----------
+    search_space : dict, optional
+        Ray Tune’s search space, Default is None.
+        Here is an example:
+        `search_space={
+            "out_planes": tune.grid_search([32, 128, 512]),
+            "kernel_size": tune.grid_search([5, 15, 25]),
+            "bn": tune.choice([True, False])
+        }`
+    num_samples : int
+        Number of sampled searching trials, Default is 10.
+    max_num_epochs : int
+        max number of epochs in ASHAScheduler, Default is 10.
+    gpus_per_trial : int, floor
+        specify the number of GPUs, Default is 1.
+
+    Returns
+    ----------
+    best_trial
+    """
+    if search_space is None:
+        search_space={
+            "out_planes": tune.grid_search([32, 128, 512]),
+            "kernel_size": tune.grid_search([5, 15, 25]),
+            "bn": tune.choice([True, False])
+        }
+    scheduler = ASHAScheduler(
+            max_t=max_num_epochs,
+            grace_period=1,
+            reduction_factor=2)
+    result = tune.run(
+        tune.with_parameters(train_model),
+        resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
+        config=search_space,
+        metric="loss",
+        mode="min",
+        num_samples=num_samples,
+        scheduler=scheduler
+    )
+
+    best_trial = result.get_best_trial("loss", "min", "last")
+    print("Best trial config: {}".format(best_trial.config))
+    print("Best trial final validation loss: {}".format(
+        best_trial.last_result["loss"]))
+    print("Best trial final validation accuracy: {}".format(
+        best_trial.last_result["accuracy"]))
+    print(best_trial)
+
+
+if __name__ == "main":
+    hyperparameter_tune(num_samples=2, max_num_epochs=2, gpus_per_trial=0)

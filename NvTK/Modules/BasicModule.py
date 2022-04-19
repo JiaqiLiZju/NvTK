@@ -1,11 +1,18 @@
 """Basic module in NvTK.
 This module provides 
+
 1.  `BasicModule` class - the general abstract class
+
 2.  `BasicConv1d` class - Basic Convolutional Module (1d)
+
 3.  `BasicRNNModule` class - Basic RNN(LSTM) Module in batch-first style
-3.  `BasicLinearModule`
-4.  `BasicPredictor` Module
-5.  `BasicLoss` Module
+
+4.  `BasicLinearModule`
+
+5.  `BasicPredictor` Module
+
+6.  `BasicLoss` Module
+
 and supporting methods.
 """
 
@@ -15,7 +22,7 @@ import numpy as np
 import torch
 from torch import nn
 
-__all__ = ["BasicModule", "BasicConv1d", "BasicRNNModule", "BasicLinearModule", "BasicPredictor", "BasicLoss"]
+__all__ = ["BasicModule", "BasicConv1d", "BasicRNNModule", "BasicLinearModule", "BasicPredictor", "BasicLoss", "Flatten"]
 
 
 class BasicModule(nn.Module):

@@ -1,4 +1,8 @@
-'''motif analysis'''
+'''Motif analysis in NvTK.
+
+Currently, this module only support DNA MOTIF analysis.
+'''
+
 import logging
 import numpy as np
 
@@ -12,13 +16,14 @@ def trim_ic(motif, cutoff=0.4, background=0.25):
 
 
 def calc_motif_IC(motif, background=0.25):
-    """IC Bernouli"""
+    """Motif IC Bernouli"""
     H = (motif * np.log2(motif / background + 1e-6)).sum()
     logging.info("Motif IC(Bernouli): %.4f" % H)
     return H
 
 
 def info_content(pwm, bg=0.5):
+    """Motif IC Bernouli"""
     pseudoc = 1e-6
     bg_pwm = [1-bg, bg, bg, 1-bg]
     
@@ -30,19 +35,21 @@ def info_content(pwm, bg=0.5):
 
 
 def calc_motif_entropy(motif, background=0.25):
-    '''Entropy'''
+    '''Motif Entropy'''
     H = -(motif * np.log2(motif / background + 1e-6)).sum()
     logging.info("Motif Entropy: %.4f" % H)
     return H
 
 
 def calc_motif_frequency(motif_IC):
+    '''Motif Frequency'''
     f = np.power(2, -(motif_IC - 1))
     logging.info("Motif Frequency: %.4f" % f)
     return f
 
 
 def calc_frequency_W(W, background=0.25):
+    '''Calculate motif Frequency in pwms'''
     motif_frequency_l, motif_IC_l = [], []
     for pwm in W:
         pwm = normalize_pwm(pwm)
@@ -53,6 +60,7 @@ def calc_frequency_W(W, background=0.25):
 
 
 def normalize_pwm(pwm, factor=None, max=None):
+    '''Normalize pwm'''
     if not max:
         max = np.max(np.abs(pwm))
     pwm = pwm/max
@@ -65,6 +73,7 @@ def normalize_pwm(pwm, factor=None, max=None):
 
 
 def meme_generate(W, output_file='meme.txt', prefix='Motif_'):
+    '''Generate meme file for pwms'''
     # background frequency
     nt_freqs = [1./4 for i in range(4)]
 

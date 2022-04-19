@@ -25,7 +25,7 @@
         author={Li, Xiang and Chen, Shuo and Gong, Chen and Xia, Yan and Yang, Jian},
         journal={arXiv preprint arXiv:},
         year={2019}
-}
+    }
 
 '''
 
@@ -33,14 +33,14 @@
 # Note:   modified for onehot sequence input
 #         add attention module using CBAM
 
+__all__  = ["BasicBlock", "Bottleneck", "ResNet", "ResidualNet"]
+
 import torch
 import torch.nn as nn
 from torch.nn import init
 import torch.nn.functional as F
 
 from .BasicModule import BasicModule
-
-__all__  = ['BasicBlock', 'Bottleneck', 'ResNet', 'ResidualNet']
 
 class BasicConv(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, 
