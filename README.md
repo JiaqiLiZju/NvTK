@@ -16,6 +16,7 @@ ps. Nvwa, the name of a mother god in ancient Chinese legend, is a deep learning
 python>=3.7
 h5py-2.10.0
 sklearn
+tqdm
 torch
 networkx
 tensorboard
@@ -23,7 +24,6 @@ captum-0.5.0
 pillow
 ray[tune]-v1.10.0
 ```
-pip install -U "ray[tune]"
 
 - external softwares (optional)
 ```
@@ -35,3 +35,4 @@ homer2
 ## News
 - 2022.03.01: NvTK is quite unstable under activate development.
 - 2022.03.23: updating BenchmarksInManuscript
+- 2022.04.19: updating Documents

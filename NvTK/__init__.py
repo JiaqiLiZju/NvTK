@@ -10,6 +10,13 @@ from .Explainer import *
 from .Config import *
 from .nvtk import *
 
+__author__ = "Jiaqili@zju.edu.cn"
+
+__email__ = "Jiaqili@zju.edu.cn"
+
+__version__ = "0.0"
+
+
 def set_random_seed(random_seed = 12):
     '''set random_seed'''
     random.seed(random_seed)
