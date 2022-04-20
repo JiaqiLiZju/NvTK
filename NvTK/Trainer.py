@@ -5,9 +5,83 @@ import torch
 from .Evaluator import calculate_correlation, calculate_roc
 
 class Trainer(object):
-    '''
-    Model Trainer
-    '''
+    """Model Trainer in NvTK.
+    
+    Trainer class could train and validate a NvTK or pytorch-based model.
+    Trainer saved the model parameters to `Log` dirs, overwriting it 
+    if the latest validation performance is better than 
+    the previous best-performing model.
+
+    Trainer maintain a Log dict to record the loss and metric 
+    during training, Trainer will save the Log to `Figures`.
+
+    Parameters
+    ----------
+    model : NvTK.model, torch.nn.module
+        The NvTK model architecture, 
+        or torch module container of parameters and methods.
+    criterion : torch.nn.module
+        The criterion of loss function,
+        criterion was optimized during training.
+    optimizer : torch.optim
+        The optimizer to update the weights of Parameter,
+        for minimizing the criterion during training.
+    device : torch.device
+        Context-manager that changes the selected device,
+        representing the device on which the model is or will be allocated,
+        ('cuda' or 'cpu').
+    tasktype : str, optional
+        Specify the task type, Default is "regression".
+        (e.g. `tasktype="binary_classification"`)
+    metric_sample : int, optional
+        The number of sampled tasks to metric. Default is 100.
+        For multi-task learning with more than `metric_sample` task, 
+        we will sample tasks when calculating the metric values.
+    item_sample : int, optional
+        The number of sampled items to metric. Default is 50000.
+        For dataset with more than `item_sample` items, 
+        we will sample items when calculating the metric values.
+    patience : int, optional
+        The number of patience in early stopping methods, Default is 10.
+        Early stopping could not work with a very large patience,
+        set `patience=np.inf` to omit early stopping.
+    resume : bool, optional
+        Whether to resume model training, Default is False.
+    resume_dirs : str, optional
+        The directory in which to resume model training, Default is False.
+    use_tensorboard : bool, optional
+        Whether to use tensorboard. Default is False.
+    tensorboard_args : dict, optional
+        tensorboard arguments.
+
+
+    Attributes
+    ----------
+    model : 
+        The container of parameters and methods.
+    device : str
+        An object representing the device on which the model is or will be allocated.
+        ('cuda' or 'cpu').
+    criterion : 
+        The criterion the model aims to minimize.
+    optimizer : 
+        The algorithm that updates the weights of Parameter during the backward step.
+    patience : int
+        The number of epochs to be trained after activating early stopping. 
+    pred_prob : bool
+        To judge the task type.
+    metric_sample : int
+        The number of metric sample.
+    item_sample : int
+        The number of item sample.
+    logs: dict
+        logs maintains loss and metric information during training.
+    tensorboard : bool
+        Whether to use tensorboard.
+    writer : 
+        Write tensorboard arguments to the summary.
+
+    """
     def __init__(self, model, criterion, optimizer, device, tasktype="regression",
                     metric_sample=100, item_sample=50000, patience=10,
                     resume=False, resume_dirs=None,
@@ -58,6 +132,44 @@ class Trainer(object):
             self.tensorbord = False
 
     def train_until_converge(self, train_loader, validate_loader, test_loader, EPOCH, resume=False, verbose_step=5):
+        """
+        Train until converge.
+        
+        Parameters
+        ----------
+        train_loader : 
+            The data loader defined by using training dataset.
+        validate_loader : 
+            The data loader defined by using validation dataset.
+        test_loader : 
+            The data loader defined by using testing dataset.
+        EPOCH : int
+            An adjustable hyperparameter, The number of times to train the model until converge.
+        resume : bool
+            Whether to resume the model training. Default is False.
+        verbose_step : int
+            The number of steps to print the loss value. Default is 5.
+
+        Attributes
+        ----------
+        tensorboard : bool
+            Whether to use tensorboard.
+        add_graph : 
+            To iterate and visualize some samples in the training dataset.
+        train_per_epoch : 
+            Train each epoch.
+        predict : 
+            To predict based on the input data
+        evaluate : 
+            To evaluate the performance of the model.
+        save_checkpoint : 
+            save checkpoint.
+        writer : 
+            To add scalar or graph to the summary.
+        load_best_model : 
+            load the best model.
+        
+        """
         # graph
         if self.tensorbord:
             try:
@@ -149,6 +261,31 @@ class Trainer(object):
         self.load_best_model()
 
     def train_per_epoch(self, train_loader, epoch, verbose_step=5):
+        """
+        Train each epoch.
+
+        Parameters
+        ----------
+        train_loader : 
+            The data loader defined by using training dataset.
+        epoch : int
+            An adjustable hyperparameter, The number of times to train the model until converge.
+        verbose_step : int
+            The number of steps to print the loss value. Default is 5.
+        
+        Attributes
+        ----------
+        train_batch : 
+            To train the batch fetched from the train_loader.
+        
+        Returns
+        -------
+        batch_losses : list
+            The total loss values of all batches.
+        average_loss : list
+            The average of the losses of batches.
+
+        """
         # train one epoch
         batch_losses = []
         self.model.train()
@@ -165,6 +302,34 @@ class Trainer(object):
         return batch_losses, average_loss
     
     def train_batch(self, data, target):
+        """
+        To meassure the loss of the batch.
+        
+        Parameters
+        ----------
+        data : numpy.ndarray
+            The input data.
+        target : numpy.ndarray
+            True value that the user model was trying to predict.
+
+
+        Attributes
+        ----------
+        model : 
+            The container of parameters and methods.
+        device : str
+            An object representing the device on which the model is or will be allocated.
+            ('cuda' or 'cpu').
+        criterion : 
+            The criterion the model aims to minimize.
+        optimizer : 
+            The algorithm that updates the weights of Parameter during the backward step.
+        
+        Returns
+        -------
+        loss : float
+            The loss value.
+        """
         self.model.train()
         data, target = data.to(self.device), target.to(self.device)
         output = self.model(data)
@@ -175,6 +340,36 @@ class Trainer(object):
         return loss.cpu().item()
 
     def predict(self, data_loader):
+        """
+        To predict based on the input data.
+
+        parameters
+        ----------
+        data_loader : 
+            The object to prepare the data for training, which retrieves batches of features and labels from the dataset iteratively.
+        
+        Attributes
+        ----------
+        model : 
+            The container of parameters and methods.
+        device : str
+            An object representing the device on which the model is or will be allocated.
+            ('cuda' or 'cpu').
+        criterion : 
+            The criterion the model aims to minimize.
+        
+        Returns
+        -------
+        batch_losses : list
+            The total loss values of all batches.
+        average_loss : list
+            The average of the losses of batches.
+        all_predictions : array
+            All the predictions of the input data organized in arrays.
+        all_targets : array
+            All the targets organized in arrays.
+
+        """
         batch_losses, all_predictions, all_targets = [], [], []
         self.model.eval()
         with torch.no_grad():
@@ -191,6 +386,34 @@ class Trainer(object):
         return batch_losses, average_loss, all_predictions, all_targets
 
     def evaluate(self, predict_prob, target_prob, sample_tasks=True, sample_items=True):
+        """
+        To evaluate the performance of the model.
+
+        Parameters
+        ----------
+        predict_prob : list
+            prediction probability
+        target_prob : list
+            target probability
+        sample_tasks : bool
+            Whether to sample tasks. Default is TRUE.
+        sample_items : bool
+            Whether to sample items. Default is TRUE.
+        
+        Attributes
+        ----------
+        metric_sample : int
+            The number of metric sample.
+        item_sample : int
+            The number of item sample.
+        pred_prob : bool
+            Whether to calculate AUC-ROC curve.
+        
+        Returns
+        -------
+        metric : float
+            The arithmetic mean of the auc/correlation, which is calculated by target probability and prediction probability.
+        """
         item_size, output_size = target_prob.shape
 
         if self.metric_sample < output_size and sample_tasks:
@@ -218,16 +441,45 @@ class Trainer(object):
         return metric
 
     def add_graph(self, input_shape=(2, 4, 1000)):
+        """
+        add graph.
+
+        Parameters
+        ----------
+        input_shape : tuple
+
+        """
         self.writer.add_graph(self.model, torch.rand(input_shape).to(self.device))
 
     def load_best_model(self, fpath="./Log/best_model.pth"):
+        """
+        load the best model.
+
+        Parameters
+        ----------
+        fpath : str
+            The file path of the best model.
+
+        """
         self.model.load(fpath)
         return self.model
 
     def get_current_model(self):
+        """
+        get the current model.
+        """
         return self.model
 
     def save_checkpoint(self, best=False):
+        """
+        save checkpoint.
+
+        Parameters
+        ----------
+        best : bool
+            Whether the current model is the best model. Default is False.
+
+        """
         os.makedirs("./Log", exist_ok=True)
         self.model.save("./Log/chekc_model.pth")
         torch.save(self.model, "./Log/chekc_model.p")
