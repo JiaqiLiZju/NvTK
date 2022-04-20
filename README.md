@@ -14,20 +14,27 @@ ps. Nvwa, the name of a mother god in ancient Chinese legend, is a deep learning
 - Python packages
 ```
 python>=3.7
-h5py-2.10.0
-sklearn
+numpy
+pandas>=0.21
+matplotlib==3.0.*
+# h5py > 2.10 may returns b'strings' reading h5file
+h5py=2.10.0
 tqdm
-torch
+scikit-learn>=0.21.2
+# torch >=1.10.1 support tensorboard, and ModifyOutputHook
+torch>=1.10.1
+tensorboard=2.7.0
+captum=0.5.0
 networkx
-tensorboard
-captum-0.5.0
-pillow
-ray[tune]-v1.10.0
+# higher version of scipy do not support resize
+pillows
 ```
 
 - external softwares (optional)
 ```
+# meme could align the deep learning motif with known TFBS database
 meme-5.4.1
+# homer2 could search the motif in activated seqlets
 homer2
 ```
 <!-- biopython-1.79 -->
@@ -35,4 +42,4 @@ homer2
 ## News
 - 2022.03.01: NvTK is quite unstable under activate development.
 - 2022.03.23: updating BenchmarksInManuscript
-- 2022.04.19: updating Documents
+- 2022.04.19: updating Documents, Tutorials
