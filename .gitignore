@@ -7,5 +7,10 @@ excludesfile = ~/.gitignore_global
 docs/
 docs/build
 
+# ignore setup build
+NvTK.egg-info
+build/
+dist/
+
 # ignore cache
 __pycache__

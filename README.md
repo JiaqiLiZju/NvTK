@@ -1,7 +1,8 @@
-# NvTK
+# NvTK 
 
-Source code used for ```Systematic evaluation of deep learning for mapping sequence to single-cell data using NvTK```
+Source code used for ```Systematic evaluation of deep learning for single-cell genomics data using NvTK```.
 
+<div align=left><img src="./Figures/Logo.png" width="80px"></img></div>
 NvTK (NvwaToolKit), is a systemmatic and easy-using deep learning software in genomics. NvTK support modern deep learning achitectures in genomics, such as Residual Module, ResNet, Attention Module, CBAM, Transformer and so on. 
 
 <div align=center><img src="./Figures/NvTK.png" width="450px"></img></div>
