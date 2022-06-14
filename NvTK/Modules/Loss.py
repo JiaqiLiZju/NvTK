@@ -1,3 +1,5 @@
+import torch
+from torch import nn
 
 class BCEFocalLoss(nn.Module):
     def __init__(self, gamma=2, weight=None, reduction='mean'):

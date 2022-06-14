@@ -83,7 +83,9 @@ class Trainer(object):
 
     """
     def __init__(self, model, criterion, optimizer, device, tasktype="regression",
-                    metric_sample=100, item_sample=50000, patience=10,
+                    clip_grad_norm=False, max_norm=10,
+                    evaluate_training=True, metric_sample=100, item_sample=50000, 
+                    patience=10,
                     resume=False, resume_dirs=None,
                     use_tensorbord=False, tensorbord_args={}):
         super().__init__()
@@ -92,9 +94,15 @@ class Trainer(object):
         self.criterion = criterion
         self.optimizer = optimizer
         self.patience = patience
+        self.clip_grad_norm = clip_grad_norm
+        self.max_norm = max_norm
 
         # task related
         self.pred_prob = tasktype != "regression"
+        self.evaluate_training = evaluate_training
+        if not evaluate_training:
+            logging.warning("setting trainer not to evaluate during training phase. \n \
+                Note, the train/test/val accuracy will be set to 0.5, instead of real accuracy.")
         # sample tasks for calculate metric
         self.metric_sample = metric_sample
         self.item_sample = item_sample
@@ -184,15 +192,15 @@ class Trainer(object):
 
             # train metrics
             train_batch_loss, train_loss, train_pred_prob, train_target_prob = self.predict(train_loader)
-            train_metric = self.evaluate(train_pred_prob, train_target_prob)
+            train_metric = self.evaluate(train_pred_prob, train_target_prob) if self.evaluate_training else 0.5
 
             # validation metrics
             val_batch_loss, val_loss, val_pred_prob, val_target_prob = self.predict(validate_loader)
-            val_metric = self.evaluate(val_pred_prob, val_target_prob)
+            val_metric = self.evaluate(val_pred_prob, val_target_prob) if self.evaluate_training else 0.5
 
             # test metrics
             test_batch_loss, test_loss, test_pred_prob, test_target_prob = self.predict(test_loader)
-            test_metric = self.evaluate(test_pred_prob, test_target_prob)
+            test_metric = self.evaluate(test_pred_prob, test_target_prob) if self.evaluate_training else 0.5
 
             # lr_scheduler
             _lr = self.optimizer.param_groups[0]['lr']
@@ -331,11 +339,18 @@ class Trainer(object):
             The loss value.
         """
         self.model.train()
-        data, target = data.to(self.device), target.to(self.device)
+        data = data.to(self.device)
+        if isinstance(target, list):
+            target = [t.to(self.device) for t in target]
+        else:
+            target = target.to(self.device)
         output = self.model(data)
         loss = self.criterion(output, target)
         self.optimizer.zero_grad()
         loss.backward()
+        if self.clip_grad_norm:
+            torch.nn.utils.clip_grad_norm_(parameters=self.model.parameters(), 
+                max_norm=self.max_norm, norm_type=2)
         self.optimizer.step()
         return loss.cpu().item()
 
@@ -374,15 +389,32 @@ class Trainer(object):
         self.model.eval()
         with torch.no_grad():
             for inputs, targets in data_loader:
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
+                inputs = inputs.to(self.device)
+                if isinstance(targets, list):
+                    targets = [t.to(self.device) for t in targets]
+                else:
+                    targets = targets.to(self.device)
+                # inputs, targets = inputs.to(self.device), targets.to(self.device)
                 output = self.model(inputs)
                 test_loss = self.criterion(output, targets)
                 batch_losses.append(test_loss.cpu().item())
-                all_predictions.append(output.cpu().data.numpy())
-                all_targets.append(targets.cpu().data.numpy())
+                if isinstance(targets, list):
+                    all_predictions.append([o.cpu().data.numpy() for o in output])
+                    all_targets.append([t.cpu().data.numpy() for t in targets])
+                else:
+                    all_predictions.append(output.cpu().data.numpy())
+                    all_targets.append(targets.cpu().data.numpy())
+
         average_loss = np.average(batch_losses)
-        all_predictions = np.vstack(all_predictions)
-        all_targets = np.vstack(all_targets)
+        if isinstance(targets, list):
+            all_predictions = [np.vstack([batch[i] for batch in all_predictions]) 
+                                for i in range(len(targets))]
+            all_targets = [np.vstack([batch[i] for batch in all_targets]) 
+                                for i in range(len(targets))]
+        else:
+            all_predictions = np.vstack(all_predictions)
+            all_targets = np.vstack(all_targets)
+
         return batch_losses, average_loss, all_predictions, all_targets
 
     def evaluate(self, predict_prob, target_prob, sample_tasks=True, sample_items=True):

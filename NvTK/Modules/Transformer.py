@@ -149,7 +149,7 @@ class TransformerEncoder(BasicModule):
     >>> encoder(inp)
     
     """
-    def __init__(self, seq_len, vocab_size=4, d_model=512, n_layers=6, n_heads=8, p_drop=0.1, d_ff=2048, pad_id=torch.zeros(4), embedding=None, embedding_weight=None, fix_embedding=False):
+    def __init__(self, seq_len, vocab_size=4, d_model=512, n_layers=6, n_heads=8, p_drop=0.1, d_ff=2048, pad_id=torch.zeros(4), embedding=None, embedding_weight=None, fix_embedding=False, max_atten=True):
         super(TransformerEncoder, self).__init__()
         # word embedding
         self.pad_id = pad_id
@@ -173,6 +173,7 @@ class TransformerEncoder(BasicModule):
         # attention_weight
         self.attention_weights = None
 
+        self.max_atten = max_atten
         # layers to classify
         # self.linear = nn.Linear(d_model, 2)  # 不需要加linear层
         # self.log_softmax = F.log_softmax
@@ -181,7 +182,7 @@ class TransformerEncoder(BasicModule):
         # |inputs| : (batch_size, channel=4, seq_len)
         logging.debug(inputs.shape)
 
-        inputs = self.embedding(inputs)
+        inputs = self.embedding(inputs) # (batch_size, d_model, seq_len)
         outputs = inputs.transpose(1, -1) # (batch_size, seq_len, d_model)
         logging.debug(outputs.shape)
         logging.debug(outputs)
@@ -216,7 +217,8 @@ class TransformerEncoder(BasicModule):
         self.attention_weights = attention_weights # np.array(attention_weights)
 
         # |outputs| : (batch_size, seq_len, d_model)
-        outputs, _ = torch.max(outputs, dim=1)
+        if self.max_atten:
+            outputs, _ = torch.max(outputs, dim=1)
         logging.debug(outputs.shape)
         logging.debug(attention_weights[0].shape)
         # |outputs| : (batch_size, d_model)

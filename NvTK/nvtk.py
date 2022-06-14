@@ -24,7 +24,7 @@ class NvTKCLI(object):
     def __init__(self, config):
         super().__init__()
 
-        if isinstance(config, 'str'):
+        if isinstance(config, str):
             self.config = load_config_from_json(config)
         else:
             self.config = config
@@ -57,6 +57,7 @@ class NvTKCLI(object):
             elif mode == "evaluate":
                 execute_nvtk_evaluate(self.trainer, self.test_loader)
             elif mode == "explain":
+                motif_width =30
                 execute_nvtk_explain(self.model, self.test_loader, motif_width)
 
 
@@ -73,7 +74,7 @@ def execute_nvtk_train(trainer, train_loader, validate_loader, test_loader):
     return model, trainer
 
 
-def execute_nvtk_evaluate(trainer, test_loader):
+def execute_nvtk_evaluate(trainer, test_loader, task_name=None):
     import pandas as pd
     from .Evaluator import calculate_roc, calculate_pr
 
@@ -88,7 +89,6 @@ def execute_nvtk_evaluate(trainer, test_loader):
 
     p, r, average_precision = calculate_pr(test_targets, test_predictions)
     aupr = [average_precision[k] for k in average_precision.keys() if k not in ["macro", "micro"]] # dict keys ordered by default in py3.7+
-
     return pd.DataFrame({"auroc":auroc, "aupr":aupr}, index=task_name).T.to_csv("Metric.csv")
 
 

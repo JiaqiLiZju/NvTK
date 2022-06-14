@@ -34,5 +34,3 @@ def generate_dataloader_from_datasets(fname, batch_size = 16):
     anno, x_train, y_train, x_val, y_val, x_test, y_test = unpack_datasets(fname)
     train_loader, validate_loader, test_loader = generate_dataloader(x_train, y_train, x_val, y_val, x_test, y_test, batch_size=batch_size)
     return train_loader, validate_loader, test_loader
-
-    

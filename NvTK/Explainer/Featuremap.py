@@ -82,7 +82,7 @@ def get_fmap(model, hook_module, data_loader, device=torch.device("cuda")):
     return fmap, X
 
 
-def get_activate_W_from_fmap(fmap, X, pool=1, threshold=0.99, motif_width=10):
+def get_activate_W_from_fmap(fmap, X, pool=1, threshold=0.99, motif_width=10, pad=0):
     """Get activated motif pwm from feature map
 
     Parameters
@@ -117,7 +117,7 @@ def get_activate_W_from_fmap(fmap, X, pool=1, threshold=0.99, motif_width=10):
         seq_align = []; count_matrix = []
         for i in range(len(pos_index)):
             # pad 1-nt
-            start = pos_index[i] - 1 # - motif_width // 2 
+            start = pos_index[i] - 1 - pad
             end = start + motif_width + 2
             # handle boundary conditions
             if end > seq_len:
@@ -143,7 +143,7 @@ def get_activate_W_from_fmap(fmap, X, pool=1, threshold=0.99, motif_width=10):
     return W
 
 
-def get_activate_W(model, hook_module, data, pool=1, threshold=0.99, motif_width=20):
+def get_activate_W(model, hook_module, data, pool=1, pad=0, threshold=0.99, motif_width=20):
     """Get activated motif pwm of input data at model.hook_module
 
     Parameters
@@ -171,7 +171,7 @@ def get_activate_W(model, hook_module, data, pool=1, threshold=0.99, motif_width
         shape of W (n_filters, 4, motif_width)
     """
     fmap, X = get_fmap(model, hook_module, data)
-    W = get_activate_W_from_fmap(fmap, X, pool, threshold, motif_width)
+    W = get_activate_W_from_fmap(fmap, X, pool, threshold, motif_width, pad=pad)
     return W
 
 

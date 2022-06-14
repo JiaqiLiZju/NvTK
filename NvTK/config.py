@@ -9,7 +9,6 @@ from NvTK.Data.Dataset import generate_dataloader_from_datasets
 from torch import nn
 from torch import optim
 
-
 def load_config_from_json(fname):
     with open(fname) as f:
         config = json.load(f)
@@ -44,8 +43,8 @@ def parse_model_args(args):
 
 def get_model_from_config(config):
     model_type = config['model'].get('type', 'CNN')
-    model_args = config['model']['args']
-    model_args = parse_model_args(model_args)
+    model_args = config['model'].get('args', None)
+    model_args = parse_model_args(model_args) if model_args else dict()
 
     if hasattr(NvTK, model_type):
         model = getattr(NvTK, model_type)(**model_args)
@@ -69,13 +68,15 @@ def get_criterion_from_config(config):
     if 'criterion' in config:
         criterion_type = config['criterion']['type']
         args = config['criterion'].get('args', {})
+    if 'tasktype' in config:
+        tasktype = config['tasktype']
+
+    if tasktype == 'regression':
+        criterion_type = 'MSELoss'
+        args = {}
     else:
-        if config['model']['tasktype'] == 'regression':
-            criterion_type = 'MSELoss'
-            args = {}
-        else:
-            criterion_type = 'BCELoss'
-            args = {}
+        criterion_type = 'BCELoss'
+        args = {}
 
     if hasattr(nn, criterion_type):
         criterion = getattr(nn, criterion_type)(**args)
@@ -97,4 +98,3 @@ def parse_modes_from_config(config):
         return [k for k in config['modes']]
     else:
         return ["hpo", "train", "evaluate", "explain"]
-

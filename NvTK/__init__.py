@@ -7,7 +7,7 @@ from .Trainer import Trainer
 from .Evaluator import *
 from .Explainer import *
 
-from .Config import *
+# from .Config import *
 from .nvtk import *
 
 __author__ = "Jiaqili@zju.edu.cn"
@@ -19,12 +19,15 @@ __version__ = "0.0"
 
 def set_random_seed(random_seed = 12):
     '''set random_seed'''
+    import random
+    import numpy as np
     random.seed(random_seed)
     np.random.seed(random_seed)
 
 
 def set_torch_seed(random_seed = 12):
     '''set torch random_seed'''
+    import torch
     torch.random.seed = random_seed
     torch.manual_seed(random_seed)
     torch.cuda.manual_seed(random_seed) 
@@ -55,8 +58,7 @@ def initialize_logger(output_path, verbosity=1):
 
             * 0 - Only warnings will be logged.
             * 1 - Information and warnings will be logged.
-            * 2 - Debug messages, information, and warnings will all be\
-                  logged.
+            * 2 - Debug messages, information, and warnings will all be logged.
 
     """
     logger = logging.getLogger("nvtk")

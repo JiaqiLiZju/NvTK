@@ -9,6 +9,7 @@
 '''
 __all__ = ["hyperparameter_tune"]
 
+import torch
 from torch import nn
 from torch.optim import Adam
 
@@ -23,19 +24,20 @@ from .Trainer import Trainer
 # add checkpointing (optional),
 # and define the search space for the model tuning
 
-def train_model(config, model_args, train_loader, validate_loader, 
-                    criterion = nn.BCELoss(), 
-                    device=torch.device("cuda")):
+def train_model(config, train_loader=None, validate_loader=None):
 
     # TODO support more NvTK architectures
     # Hyperparameters
-    model = CNN(model_args, **config).to(device)
+    model = CNN(**config, output_size=n_tasks, tasktype="binary_classification").to(device)
     
     optimizer = Adam(model.parameters(), lr=1e-3)
     trainer = Trainer(model, criterion, optimizer, device)
     
     # Train for 10 EPOCH
-    for _ in range(10):
+    for epoch in range(10):
+        # train epoch
+        trainer.train_per_epoch(train_loader, epoch)
+        
         # validation metrics
         _, val_loss, val_pred_prob, val_target_prob = trainer.predict(validate_loader)
         val_metric = trainer.evaluate(val_pred_prob, val_target_prob)
@@ -44,7 +46,7 @@ def train_model(config, model_args, train_loader, validate_loader,
         tune.report(acc=val_metric, loss=val_loss)
 
 
-def hyperparameter_tune(search_space=None, num_samples=10, max_num_epochs=10, gpus_per_trial=1):
+def hyperparameter_tune(search_space=None, num_samples=10, max_num_epochs=10, gpus_per_trial=1, **kwargs):
     """Hyper Parameter Tune in NvTK.
 
     Currently, it only support NvTK.CNN architectures.
@@ -78,16 +80,14 @@ def hyperparameter_tune(search_space=None, num_samples=10, max_num_epochs=10, gp
     if search_space is None:
         search_space={
             "out_planes": tune.grid_search([32, 128, 512]),
-            "kernel_size": tune.grid_search([5, 15, 25]),
-            "bn": tune.choice([True, False])
+            "kernel_size": tune.grid_search([5, 15, 25])
         }
-    scheduler = ASHAScheduler(
-            max_t=max_num_epochs,
-            grace_period=1,
-            reduction_factor=2)
+    scheduler = ASHAScheduler(metric="loss", mode="min", max_t=max_num_epochs,
+            grace_period=1, reduction_factor=2)
     result = tune.run(
-        tune.with_parameters(train_model),
-        resources_per_trial={"cpu": 2, "gpu": gpus_per_trial},
+        tune.with_parameters(train_model, 
+                            train_loader=train_loader, 
+                            validate_loader=validate_loader),
         config=search_space,
         metric="loss",
         mode="min",
