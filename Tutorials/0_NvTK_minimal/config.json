@@ -10,6 +10,9 @@
     },
     
     "model": {
-        "type": "CNN"
-    }
+        "type": "CNN",
+        "args": {"output_size":4}
+    },
+
+    "modes":["train", "evaluate", "explain"]
 }
