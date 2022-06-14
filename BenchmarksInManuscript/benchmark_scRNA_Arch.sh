@@ -9,7 +9,7 @@ python ${BASEDIR}/nvtk-benchmark.py \
     ${BASEDIR}/Dataset/Dataset.Mouse_sctechnologies_leave_chrom8_mESC_MAGIC.h5 \
     --use_DeepCNN 4 \
     --subset_task SmartSeq2 --subset_task_by Cluster \
-    --lr 1e-5 --patience 100 --batch_size 16 \
+    --lr 1e-5 --patience 10 --batch_size 16 \
     --gpu-device 1
 
 
@@ -20,7 +20,7 @@ python ${BASEDIR}/nvtk-benchmark.py \
     ${BASEDIR}/Dataset/Dataset.Mouse_sctechnologies_leave_chrom8_mESC_MAGIC.h5 \
     --use_CBAM True \
     --subset_task SmartSeq2 --subset_task_by Cluster \
-    --lr 1e-5 --patience 100 --batch_size 16 \
+    --lr 1e-5 --patience 10 --batch_size 16 \
     --gpu-device 1
 
 

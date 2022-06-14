@@ -28,15 +28,18 @@ class BaselineCNN(BasicModel):
                     kernel_size=kernel_size, in_planes=in_planes, conv_args=conv_args, 
                     bn=bn, activation=activation, activation_args=activation_args, 
                     pool=pool, pool_args=pool_args)
-
-        encoder_layers = OrderedDict([('Conv', BasicConv1d(in_planes=emb_planes, out_planes=256))])
+        
+        # define encoder layers
+        encoder_layers = OrderedDict()
         if use_CBAM:
-            encoder_layers['CBAM'] = CBAM(256)
+            encoder_layers['CBAM'] = CBAM(emb_planes)
+        encoder_layers['Conv'] = BasicConv1d(in_planes=emb_planes, out_planes=256)
+
         if n_deep_convlayers > 1:
             for n in range(1, n_deep_convlayers):
-                encoder_layers['Conv_'+str(n)] = BasicConv1d(256, 256, pool=False)
                 if use_CBAM:
                     encoder_layers['CBAM_'+str(n)] = CBAM(256)
+                encoder_layers['Conv_'+str(n)] = BasicConv1d(256, 256, pool=False)
         encoder_layers['GAP'] = nn.AdaptiveAvgPool1d(GAP) # (batch_size, 256, GAP)
         encoder_layers['Flatten'] = Flatten() # (batch_size, 256*GAP)
         self.Encoder = nn.Sequential(encoder_layers)
@@ -68,12 +71,14 @@ def get_resnet(output_size, layers=18, tasktype='regression'):
 def get_transformer(input_size, output_size, tasktype='regression'):
     from NvTK import TransformerEncoder
     model = BasicModel()
-    model.Embedding = BasicConvEmbed(out_planes=128, kernel_size=15, activation=None, pool=nn.AvgPool1d, pool_args={'kernel_size': 15})
+    model.Embedding = BasicConvEmbed(out_planes=128, kernel_size=15, conv_args={'padding':7}, 
+                                    activation=nn.LeakyReLU, activation_args={"negative_slope":0.2}, 
+                                    pool=nn.AvgPool1d, pool_args={'kernel_size': 2})
     data = torch.zeros(input_size)
     _, d_model, seq_len = model.Embedding.forward(data).shape
     model.Encoder = TransformerEncoder(seq_len, d_model=d_model, n_layers=2, n_heads=2, d_ff=32, embedding=nn.Sequential())
-    model.Decoder = BasicLinearModule(d_model, 128)
-    model.Predictor = BasicPredictor(128, output_size, tasktype=tasktype)
+    # model.Decoder = BasicLinearModule(d_model, 128)
+    model.Predictor = BasicPredictor(d_model, output_size, tasktype=tasktype)
     return model
 
 

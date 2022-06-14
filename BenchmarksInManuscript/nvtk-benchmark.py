@@ -1,5 +1,5 @@
 import sys
-sys.path.append("/public/home/guogjgroup/ggj/JiaqiLi/NvTK/NvTK")
+sys.path.append("/public/home/guogjgroup/ggj/JiaqiLi/NvTK/")
 # print(sys.path)
 
 import h5py, os, argparse, logging, time
