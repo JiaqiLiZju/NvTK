@@ -139,7 +139,7 @@ class Trainer(object):
         else:
             self.tensorbord = False
 
-    def train_until_converge(self, train_loader, validate_loader, test_loader, EPOCH, resume=False, verbose_step=5):
+    def train_until_converge(self, train_loader, test_loader, validate_loader, EPOCH=100, resume=False, verbose_step=5):
         """
         Train until converge.
         
@@ -147,10 +147,11 @@ class Trainer(object):
         ----------
         train_loader : 
             The data loader defined by using training dataset.
-        validate_loader : 
-            The data loader defined by using validation dataset.
         test_loader : 
             The data loader defined by using testing dataset.
+        validate_loader : 
+            The data loader defined by using validation dataset. 
+            validate_loader could be `None`, and will skip evaluate on val-set and early-stop.
         EPOCH : int
             An adjustable hyperparameter, The number of times to train the model until converge.
         resume : bool
@@ -191,16 +192,25 @@ class Trainer(object):
             train_batch_loss, train_loss = self.train_per_epoch(train_loader, epoch, verbose_step=20)
 
             # train metrics
-            train_batch_loss, train_loss, train_pred_prob, train_target_prob = self.predict(train_loader)
-            train_metric = self.evaluate(train_pred_prob, train_target_prob) if self.evaluate_training else 0.5
-
-            # validation metrics
-            val_batch_loss, val_loss, val_pred_prob, val_target_prob = self.predict(validate_loader)
-            val_metric = self.evaluate(val_pred_prob, val_target_prob) if self.evaluate_training else 0.5
+            if self.evaluate_training:
+                train_batch_loss, train_loss, train_pred_prob, train_target_prob = self.predict(train_loader)
+                train_metric = self.evaluate(train_pred_prob, train_target_prob)
+            else:
+                train_metric = 0.5
 
             # test metrics
             test_batch_loss, test_loss, test_pred_prob, test_target_prob = self.predict(test_loader)
             test_metric = self.evaluate(test_pred_prob, test_target_prob) if self.evaluate_training else 0.5
+            
+            # validation metrics
+            if validate_loader:
+                val_batch_loss, val_loss, val_pred_prob, val_target_prob = self.predict(validate_loader)
+                val_metric = self.evaluate(val_pred_prob, val_target_prob) if self.evaluate_training else 0.5
+            else:
+                logging.info("The validate_loader is None, \
+                    and the validation metrics will be set as test metrics.")
+                val_batch_loss, val_loss, val_pred_prob, val_target_prob = test_batch_loss, test_loss, test_pred_prob, test_target_prob
+                val_metric = test_metric
 
             # lr_scheduler
             _lr = self.optimizer.param_groups[0]['lr']
@@ -339,9 +349,12 @@ class Trainer(object):
             The loss value.
         """
         self.model.train()
-        data = data.to(self.device)
+        if isinstance(data, list):
+            data = [d.to(self.device) if isinstance(d, torch.Tensor) else d for d in data]
+        else:
+            data = data.to(self.device)
         if isinstance(target, list):
-            target = [t.to(self.device) for t in target]
+            target = [t.to(self.device) if isinstance(t, torch.Tensor) else t for t in target]
         else:
             target = target.to(self.device)
         output = self.model(data)
@@ -389,21 +402,27 @@ class Trainer(object):
         self.model.eval()
         with torch.no_grad():
             for inputs, targets in data_loader:
-                inputs = inputs.to(self.device)
+                if isinstance(inputs, list):
+                    inputs = [d.to(self.device) if isinstance(d, torch.Tensor) else d for d in inputs]
+                else:
+                    inputs = inputs.to(self.device)
                 if isinstance(targets, list):
-                    targets = [t.to(self.device) for t in targets]
+                    targets = [t.to(self.device) if isinstance(t, torch.Tensor) else t for t in targets]
                 else:
                     targets = targets.to(self.device)
                 # inputs, targets = inputs.to(self.device), targets.to(self.device)
                 output = self.model(inputs)
                 test_loss = self.criterion(output, targets)
                 batch_losses.append(test_loss.cpu().item())
+                
                 if isinstance(targets, list):
-                    all_predictions.append([o.cpu().data.numpy() for o in output])
-                    all_targets.append([t.cpu().data.numpy() for t in targets])
+                    all_targets.append([t.cpu().data.numpy() if isinstance(t, torch.Tensor) else t for t in targets])
+                else:
+                    all_targets.append(targets.cpu().data.numpy())
+                if isinstance(output, (list, tuple)):
+                    all_predictions.append([o.cpu().data.numpy() if isinstance(o, torch.Tensor) else o for o in output])
                 else:
                     all_predictions.append(output.cpu().data.numpy())
-                    all_targets.append(targets.cpu().data.numpy())
 
         average_loss = np.average(batch_losses)
         if isinstance(targets, list):
